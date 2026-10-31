@@ -84,22 +84,38 @@ def api(method: str, path: str, tok: str, payload: dict | None = None) -> tuple[
         return 0, {"error": str(e)}
 
 
-def tracked_files() -> list[tuple[str, bytes]]:
-    """用 git ls-files 取受版本控制的文件，自动尊重 .gitignore。"""
+def tracked_files() -> list[tuple[str, str, bytes]]:
+    """用 `git ls-files -s` 取受版本控制的文件 **及其 git 模式**。
+
+    为什么要读 mode：GitHub 的 tree 条目带 mode，硬写 100644 会把
+    scripts/*.sh、tests/*.sh 的可执行位丢掉 —— 仓库里 `./scripts/verify.sh`
+    就跑不起来，和本地工作树不一致。
+    """
     out = subprocess.run(
-        ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True
+        ["git", "ls-files", "-s", "-z"], cwd=ROOT, capture_output=True, check=True
     ).stdout.decode()
-    paths = [p for p in out.split("\0") if p]
-    files: list[tuple[str, bytes]] = []
-    for rel in paths:
+    entries = [e for e in out.split("\0") if e]
+    files: list[tuple[str, str, bytes]] = []
+    for raw in entries:
+        meta, _, rel = raw.partition("\t")
+        parts = meta.split()
+        if len(parts) < 3:
+            continue
+        git_mode = parts[0]
         fp = ROOT / rel
+        if git_mode == "120000":  # symlink：blob 内容是链接目标字符串
+            if not fp.is_symlink():
+                continue
+            files.append((rel, "120000", os.readlink(fp).encode()))
+            continue
         if not fp.is_file():
             continue
         size = fp.stat().st_size
         if size > MAX_FILE:
             print(f"  ! 跳过超大文件 {rel} ({size} bytes)")
             continue
-        files.append((rel, fp.read_bytes()))
+        mode = "100755" if git_mode == "100755" else "100644"
+        files.append((rel, mode, fp.read_bytes()))
     return files
 
 
@@ -111,7 +127,7 @@ def main() -> None:
     args = ap.parse_args()
 
     files = tracked_files()
-    total = sum(len(b) for _, b in files)
+    total = sum(len(b) for _, _, b in files)
     msg = args.message or subprocess.run(
         ["git", "log", "-1", "--pretty=%B"], cwd=ROOT, capture_output=True, text=True
     ).stdout.strip() or "chore: publish AI HUD"
@@ -119,8 +135,8 @@ def main() -> None:
     print(f"仓库：{OWNER}/{REPO} → {BRANCH}")
     print(f"文件：{len(files)} 个 / {total/1024:.1f} KiB")
     if args.dry_run:
-        for rel, b in files:
-            print(f"  {len(b):>8}  {rel}")
+        for rel, mode, b in files:
+            print(f"  {mode}  {len(b):>8}  {rel}")
         return
 
     tok = token(prompt=args.prompt)
@@ -172,11 +188,11 @@ def main() -> None:
             return False
         return False  # 保守起见：远端存在也重传（blob 内容寻址，同内容不会产生新 blob）
 
-    changed = [(rel, blob) for rel, blob in files if not same_as_remote(rel, blob)]
+    changed = [(rel, mode, blob) for rel, mode, blob in files if not same_as_remote(rel, blob)]
     print(f"→ 待上传 blob：{len(changed)} 个（其余按远端缓存跳过）")
 
     entries = []
-    for i, (rel, blob) in enumerate(changed, 1):
+    for i, (rel, mode, blob) in enumerate(changed, 1):
         code, res = api(
             "POST",
             f"/repos/{OWNER}/{REPO}/git/blobs",
@@ -186,7 +202,7 @@ def main() -> None:
         if code not in (200, 201):
             hint = "（空仓库需先播种首个提交）" if code == 409 else ""
             sys.exit(f"✗ blob 上传失败（{rel}）：HTTP {code} {res.get('message')}{hint}")
-        entries.append({"path": rel, "mode": "100644", "type": "blob", "sha": res["sha"]})
+        entries.append({"path": rel, "mode": mode, "type": "blob", "sha": res["sha"]})
         if i % 25 == 0:
             print(f"  … {i}/{len(changed)}")
 
@@ -195,15 +211,31 @@ def main() -> None:
         code, tree = api("GET", f"/repos/{OWNER}/{REPO}/git/trees/{parents[0]}?recursive=1", tok)
         remote_map = {e["path"]: e["sha"] for e in tree.get("tree", []) if e.get("type") == "blob"}
         uploaded = {e["path"] for e in entries}
+        mode_map = {rel: mode for rel, mode, _ in files}
         for rel in remote_files - uploaded:
             if (ROOT / rel).is_file():
-                entries.append({"path": rel, "mode": "100644", "type": "blob", "sha": remote_map[rel]})
+                entries.append({
+                    "path": rel,
+                    "mode": mode_map.get(rel, "100644"),
+                    "type": "blob",
+                    "sha": remote_map[rel],
+                })
 
     # 3. tree → commit → ref
     code, tree_res = api("POST", f"/repos/{OWNER}/{REPO}/git/trees", tok, {"tree": entries})
     if code not in (200, 201):
         sys.exit(f"✗ tree 创建失败：HTTP {code} {tree_res.get('message')}")
     print(f"✓ tree {tree_res['sha'][:8]}（{len(entries)} 项）")
+
+    # 自检：远端 tree 必须与本地 HEAD 的 tree 完全一致（含文件模式）
+    local_tree = subprocess.run(
+        ["git", "rev-parse", "HEAD^{tree}"], cwd=ROOT, capture_output=True, text=True
+    ).stdout.strip()
+    if local_tree == tree_res["sha"]:
+        print(f"✓ tree 与本地 HEAD 完全一致（{local_tree[:8]}）")
+    else:
+        print(f"△ tree 与本地不一致：本地 {local_tree[:8]} / 远端 {tree_res['sha'][:8]}")
+        print("  （差异通常来自本地未提交改动或未跟踪文件；内容仍已推送）")
 
     payload = {"message": msg, "tree": tree_res["sha"]}
     if parents:

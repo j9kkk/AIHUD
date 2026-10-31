@@ -30,7 +30,8 @@ prototype/    44 屏可视化原型（单 HTML，直接浏览器打开）
 core/         TypeScript 领域内核：渠道驱动、状态机、调度与熔断、投影（288 测试）
 ui/           渲染层：卡片、同心环、详情页、设置（无框架，原生 TS + SVG）
 src-tauri/    Tauri 2 壳：托盘、无边框面板、Keychain、白名单 HTTP、CLI 桥、SQLite
-.github/      macOS CI：检查 + universal .app 打包
+tools/        端点探针：只读探测四渠道额度接口，全程脱敏（25 项自检 + 14 项集成测试）
+.github/      macOS CI：检查 + universal .app/.dmg 打包 + 自动 Release
 ```
 
 ## 构建
@@ -57,6 +58,10 @@ xattr -dr com.apple.quarantine "AI HUD.app"
 ```bash
 npm test                 # 288 个用例 / 19 个 spec
 bash scripts/verify.sh   # 7 项：类型、测试、凭据扫描、对比度、Rust 结构、文档一致性
+
+# 端点探针（不需要 App，也不需要登录态即可跑自检）
+python3 tools/quota_probe.py --selftest     # 25 项：脱敏、状态分类、fixture 固化
+python3 tools/test_integration.py           # 14 项：本地冒充四个上游，覆盖 401/429/403/HTML
 ```
 
 ## 文档索引

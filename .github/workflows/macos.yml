@@ -57,6 +57,12 @@ jobs:
       - name: 对比度与字号令牌
         run: node tests/contrast-sweep.mjs
 
+      - name: 端点探针自检（脱敏 / 状态分类 / fixture）
+        run: python3 tools/quota_probe.py --selftest
+
+      - name: 端点探针集成测试（本地冒充四个上游）
+        run: python3 tools/test_integration.py
+
   build-macos:
     name: 构建 macOS 应用（universal：arm64 + x86_64）
     needs: checks
