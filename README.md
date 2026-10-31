@@ -72,6 +72,8 @@ python3 tools/test_integration.py           # 14 项：本地冒充四个上游�
 | [`docs/FLOWS.md`](docs/FLOWS.md) | 8 条主流程、32 个边界条件、50 屏交互注册表 |
 | [`docs/SPEC.md`](docs/SPEC.md) | 16 个实现切片 + 自定义渠道配置格式 + 实现状态 |
 | [`prototype/ai-hud-prototype.html`](prototype/ai-hud-prototype.html) | 44 屏原型（含状态矩阵与异常路径） |
+| [`prototype/builders/`](prototype/builders/) | v10/v11/v12 原型生成器（HIG 材质 / 双层导航 / 全流程） |
+| [`docs/research/`](docs/research/) | 立项三件套：可行性报告、32 故事 50 边界、首版架构图 |
 | [`docs/VERIFY.md`](docs/VERIFY.md) | 验证报告（真实命令输出 + 未验证项清单） |
 | [`docs/BUILD-macOS.md`](docs/BUILD-macOS.md) | 构建、公证、冒烟顺序、已知缺口 |
 

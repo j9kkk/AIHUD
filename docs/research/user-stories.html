@@ -1,0 +1,802 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 额度 HUD · 用户故事与边界条件全量规格 v1</title>
+<style>
+  :root{--bg:#020617;--card:#0b1220;--card2:#0f172a;--line:#1e293b;--line2:#243449;
+    --tx:#e2e8f0;--mut:#94a3b8;--dim:#64748b;
+    --cyan:#22d3ee;--em:#34d399;--vio:#a78bfa;--amb:#fbbf24;--rose:#fb7185;--org:#fb923c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font-family:"JetBrains Mono",ui-monospace,"Noto Sans SC","PingFang SC",system-ui,sans-serif;line-height:1.55;
+    -webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;
+    background-image:linear-gradient(#1e293b 1px,transparent 1px),linear-gradient(90deg,#1e293b 1px,transparent 1px);
+    background-size:40px 40px;opacity:.25;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:46px 26px 72px}
+  .eyebrow{display:flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--em);box-shadow:0 0 0 0 rgba(52,211,153,.7);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}70%{box-shadow:0 0 0 9px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+  h1{font-size:27px;line-height:1.28;margin:10px 0 6px;font-weight:650;letter-spacing:-.2px}
+  .sub{color:var(--mut);font-size:13px;max-width:930px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--mut);
+    border:1px solid var(--line2);background:rgba(15,23,42,.7);border-radius:999px;padding:3px 9px}
+  .chip b{color:var(--tx)}
+  section{margin-top:42px}
+  h2{font-size:15px;margin:0 0 6px;display:flex;align-items:center;gap:10px}
+  h2 .num{font-size:11px;color:var(--dim);border:1px solid var(--line2);border-radius:6px;padding:2px 7px;font-weight:500}
+  .lede{color:var(--mut);font-size:12.5px;margin:4px 0 16px;max-width:960px}
+  h3.act{font-size:12.5px;color:var(--mut);margin:26px 0 10px;font-weight:600;letter-spacing:.05em;
+    display:flex;align-items:center;gap:10px}
+  h3.act::after{content:"";flex:1;height:1px;background:var(--line)}
+  .us{background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(11,18,32,.95));border:1px solid var(--line);
+    border-radius:12px;padding:14px 16px;margin-bottom:10px;position:relative}
+  .us::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;border-radius:2px;background:var(--line2)}
+  .us.p0::before{background:var(--rose)} .us.p1::before{background:var(--amb)} .us.p2::before{background:var(--em)}
+  .us-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .sid{font-size:10.5px;color:var(--dim);border:1px solid var(--line2);border-radius:5px;padding:1px 6px}
+  .stitle{font-size:13px;font-weight:600}
+  .pill{font-size:9.5px;padding:1px 6px;border-radius:999px;border:1px solid}
+  .pill.p0{background:rgba(251,113,133,.14);color:#fecdd3;border-color:rgba(251,113,133,.4)}
+  .pill.p1{background:rgba(251,191,36,.14);color:#fde68a;border-color:rgba(251,191,36,.4)}
+  .pill.p2{background:rgba(52,211,153,.14);color:#a7f3d0;border-color:rgba(52,211,153,.4)}
+  .plats{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+  .plats span{font-size:9.5px;color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+  .us-grid{display:grid;grid-template-columns:1.05fr 1fr 1fr 1.5fr;gap:12px;margin-top:10px}
+  @media (max-width:900px){.us-grid{grid-template-columns:1fr 1fr}}
+  @media (max-width:620px){.us-grid{grid-template-columns:1fr}}
+  .us-grid label{display:block;font-size:9.5px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;margin-bottom:3px}
+  .us-grid div p{margin:0;font-size:11.5px;color:var(--mut)}
+  .us-grid .gwt p{color:#cbd5e1;font-size:11.5px}
+  .edges{margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .edges b{font-size:9.5px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-right:2px}
+  .ec{font-size:10.5px;color:#cbd5e1;background:rgba(148,163,184,.08);border:1px solid var(--line);
+    border-radius:6px;padding:2px 7px}
+  table{width:100%;border-collapse:collapse;font-size:11.5px;background:rgba(11,18,32,.6);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:rgba(15,23,42,.9);font-weight:600}
+  tr:last-child td{border-bottom:none}
+  .tablewrap{overflow-x:auto;border-radius:10px}
+  code{background:rgba(148,163,184,.12);padding:1px 5px;border-radius:4px;font-size:11px;overflow-wrap:anywhere}
+  .statebar{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px}
+  .st{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;border:1px solid var(--line2);
+    border-radius:999px;padding:4px 11px;background:rgba(15,23,42,.7)}
+  .st i{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .mtx td{font-family:inherit;font-size:10.5px}
+  .mtx td a{color:#7dd3fc;text-decoration:none}
+  .mtx td a:hover{text-decoration:underline}
+  .mtx td.hit{background:rgba(52,211,153,.05)}
+  .mtx td.empty{background:rgba(251,113,133,.08);color:#fda4af}
+  .note{border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.06);border-radius:10px;padding:13px 15px;
+    font-size:12px;color:#a5f3fc;margin-top:14px}
+  .warnbox{border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.06);border-radius:10px;
+    padding:13px 15px;font-size:12px;color:#fde68a;margin-top:14px}
+  .warnbox b{color:#fff7d6}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media (max-width:980px){.cards{grid-template-columns:repeat(2,1fr)}}
+  .card{background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(11,18,32,.95));border:1px solid var(--line);
+    border-radius:12px;padding:15px 15px 13px;position:relative;overflow:hidden}
+  .card::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--cyan)}
+  .card.c-ok::after{background:var(--em)} .card.c-warn::after{background:var(--amb)} .card.c-bad::after{background:var(--rose)}
+  .card .k{font-size:22px;font-weight:650;letter-spacing:-.4px}
+  .card .t{font-size:11px;color:var(--dim);margin-bottom:6px}
+  .card p{margin:0;font-size:11.5px;color:var(--mut)}
+  footer{margin-top:46px;border-top:1px solid var(--line);padding-top:14px;color:var(--dim);font-size:11px;
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  a{color:#7dd3fc}
+</style></head><body><div class="wrap">
+<div class="eyebrow"><span class="dot"></span>体验规格 · 用户故事 · 边界条件 · 闭环验收</div>
+<h1>AI 额度 HUD：从装好到卸载，每一步都写成可验收的断言</h1>
+<div class="sub">覆盖四个平台、五个渠道、八种渠道状态。每条故事都带 Given / When / Then 与边界条件，每个状态在每个平台上都有归属故事——下面第 04 节用矩阵机器核对过，没有空格。</div>
+<div class="meta">
+<span class="chip"><b>32</b> 条用户故事</span>
+<span class="chip"><b>50</b> 个边界条件</span>
+<span class="chip"><b>8</b> 种渠道状态</span>
+<span class="chip"><b>12</b> 条闭环断言</span>
+<span class="chip">P0 <b>20</b> · P1 <b>9</b> · P2 <b>3</b></span>
+<span class="chip">WorkBuddy 授权接口已实测可用</span>
+</div>
+<section><h2><span class="num">00</span>怎么读这份规格</h2>
+<p class="lede">三条原则，决定这份文档和"功能清单"的区别。</p>
+<div class="cards">
+<div class="card c-ok"><div class="k">状态优先</div><div class="t">不是页面，是状态</div><p>每个渠道卡片有 8 种状态。规格不按页面组织，按"状态 × 平台"组织，因此不存在"这个状态没人管"的空白。</p></div>
+<div class="card c-warn"><div class="k">边界即需求</div><div class="t">50 条显式列出</div><p>离线、401、429、返回 HTML、时区跳变、托盘折叠……每条都写死期望行为，测试可直接抄成用例。</p></div>
+<div class="card c-bad"><div class="k">不撒谎</div><div class="t">数据可信度是功能</div><p>过期必须标注、失败不得显示 0%、停服要说明原因并给迁移路径。这是本产品最容易被做成"看起来能用"的地方。</p></div>
+<div class="card"><div class="k">可机器核对</div><div class="t">覆盖率不是形容词</div><p>第 04 节的矩阵由脚本从故事数据生成：8×4=32 个格全部非空，可见性 3×4=12 个格全部非空。</p></div>
+</div></section>
+<section><h2><span class="num">01</span>渠道卡片的八种状态</h2>
+<p class="lede">所有渠道统一收敛到这 8 个状态。UI、通知、数据保留策略都按状态定义，而不是按渠道写分支。</p>
+<div class="statebar">
+<span class="st"><i style="background:#94a3b8"></i>未配置</span>
+<span class="st"><i style="background:#22d3ee"></i>授权中</span>
+<span class="st"><i style="background:#34d399"></i>正常</span>
+<span class="st"><i style="background:#fbbf24"></i>过期(stale)</span>
+<span class="st"><i style="background:#fb7185"></i>需重登</span>
+<span class="st"><i style="background:#fb923c"></i>限流</span>
+<span class="st"><i style="background:#f43f5e"></i>已停服</span>
+<span class="st"><i style="background:#a78bfa"></i>不支持</span>
+</div>
+<div class="tablewrap"><table><thead><tr><th style="width:13%">从</th><th style="width:20%">触发</th><th style="width:11%">到</th><th>UI 必须发生什么</th><th style="width:9%">谁触发</th></tr></thead><tbody>
+<tr><td><b>未配置</b></td><td>添加渠道</td><td><b>授权中</b></td><td>打开授权流程，展示正在进行</td><td>用户</td></tr>
+<tr><td><b>授权中</b></td><td>拿到快照</td><td><b>正常</b></td><td>徽标出现第一个数字</td><td>系统</td></tr>
+<tr><td><b>授权中</b></td><td>失败/取消</td><td><b>未配置</b></td><td>回到空状态并保留错误摘要</td><td>系统/用户</td></tr>
+<tr><td><b>正常</b></td><td>连续 3 次失败（网络）</td><td><b>过期(stale)</b></td><td>保留旧值 + 时间戳 + 灰点</td><td>系统</td></tr>
+<tr><td><b>过期(stale)</b></td><td>下一次成功</td><td><b>正常</b></td><td>静默恢复，不弹通知</td><td>系统</td></tr>
+<tr><td><b>正常/过期</b></td><td>401 / 403 鉴权失败</td><td><b>需重登</b></td><td>卡片变&quot;需重登&quot;，旧百分比隐藏</td><td>系统</td></tr>
+<tr><td><b>需重登</b></td><td>用户重新登录</td><td><b>授权中</b></td><td>复用原卡片位置，不新增卡片</td><td>用户</td></tr>
+<tr><td><b>正常</b></td><td>429 + Retry-After</td><td><b>限流</b></td><td>显示可重试时间，按钮禁用</td><td>系统</td></tr>
+<tr><td><b>限流</b></td><td>退避到期且成功</td><td><b>正常</b></td><td>恢复显示，不提示&quot;已恢复&quot;</td><td>系统</td></tr>
+<tr><td><b>正常/过期</b></td><td>上游停服信号</td><td><b>已停服</b></td><td>说明 + 迁移路径（Gemini→Antigravity）</td><td>系统</td></tr>
+<tr><td><b>正常</b></td><td>账号类型不支持</td><td><b>不支持</b></td><td>说明 + 可操作建议，不再重试</td><td>系统</td></tr>
+<tr><td><b>任意</b></td><td>用户暂停</td><td><b>暂停</b></td><td>零请求零通知，图标加暂停标记</td><td>用户</td></tr>
+<tr><td><b>暂停</b></td><td>到期/手动恢复</td><td><b>未配置*</b></td><td>立即刷新一轮，失败则按错误态处理</td><td>系统/用户</td></tr>
+</tbody></table></div>
+<div class="warnbox"><b>硬规则：</b>只有「正常」状态允许显示百分比。其余状态一律显示状态文案 + 最后一次已知值（带时间戳），任何情况下都不允许把"读不到"渲染成 <b>0%</b> 或 <b>100%</b>。</div></section>
+<section><h2><span class="num">02</span>用户故事（按阶段）</h2>
+<p class="lede">每条含角色、场景、期望结果、Given/When/Then、边界条件、覆盖平台与优先级。P0 = 首发必须；P1 = 移动端与外设；P2 = 打磨。</p>
+<h3 class="act">安装与首启 · 4 条</h3>
+<div class="us p0" id="US-01">
+<div class="us-head">
+<span class="sid">US-01</span><span class="stitle">macOS 首次安装后立刻可用</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>单人开发者</p></div>
+<div><label>场景</label><p>从下载到看见第一个数字</p></div>
+<div><label>期望</label><p>双击安装、无 Dock 图标、菜单栏出现徽标，并在 3 步内连上第一个渠道</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 已装 1 个以上 CLI 且已登录／W 打开 App／T 菜单栏出现 L1 徽标，点开后自动列出检测到的渠道</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">未检测到任何登录态</span>
+<span class="ec">用户拒绝 Keychain 访问（TCC 弹窗）</span>
+<span class="ec">安装包未签名被 Gatekeeper 拦</span>
+</div></div>
+<div class="us p0" id="US-02">
+<div class="us-head">
+<span class="sid">US-02</span><span class="stitle">Windows 首次安装与开机自启</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>Windows</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>单人开发者</p></div>
+<div><label>场景</label><p>安装 → 托盘出现图标</p></div>
+<div><label>期望</label><p>托盘图标出现，开机自启默认关闭并由用户显式开启</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 未签名安装包／W 运行安装程序／T 出现 SmartScreen 提示可继续，安装后托盘出现图标，设置里&quot;开机启动&quot;为关</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">SmartScreen 被公司策略禁止运行</span>
+<span class="ec">用户此前装过旧版本（MSI）</span>
+<span class="ec">杀软隔离安装包</span>
+</div></div>
+<div class="us p0" id="US-03">
+<div class="us-head">
+<span class="sid">US-03</span><span class="stitle">三步引导与随时跳过</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>新用户</p></div>
+<div><label>场景</label><p>第一次打开时的引导</p></div>
+<div><label>期望</label><p>选渠道 → 授权 → 选可见性，每步可跳过，跳过后可在设置里补</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 首次启动／W 走完引导／T 全程 ≤ 3 屏，任一步&quot;跳过&quot;后进入主界面且不重复弹引导</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">中途退出 App</span>
+<span class="ec">授权失败后返回上一步</span>
+<span class="ec">引导中系统弹出勿扰</span>
+</div></div>
+<div class="us p0" id="US-04">
+<div class="us-head">
+<span class="sid">US-04</span><span class="stitle">零渠道时的空状态</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>还没用 CLI 的用户</p></div>
+<div><label>场景</label><p>一个渠道都没检测到</p></div>
+<div><label>期望</label><p>明确说明&quot;没发现登录态&quot;，给出各渠道一条登录命令，不显示错误也不显示 0%</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 本机无任何凭据／W 打开主界面／T 显示空状态卡片 + 3 个&quot;如何登录&quot;链接，无红色报错</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">凭据文件存在但内容损坏</span>
+<span class="ec">凭据属于另一个用户账户</span>
+<span class="ec">PATH 里没有对应 CLI</span>
+</div></div>
+<h3 class="act">渠道授权 · 5 条</h3>
+<div class="us p0" id="US-05">
+<div class="us-head">
+<span class="sid">US-05</span><span class="stitle">Claude 一键连接（不粘贴 token）</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>Claude 订阅用户</p></div>
+<div><label>场景</label><p>本机已有 Claude Code 登录态</p></div>
+<div><label>期望</label><p>自动读取 Keychain/凭据文件完成连接，用户不需要看到 token</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 已登录 Claude Code／W 点&quot;连接 Claude&quot;／T ≤ 2s 显示 5h 与 7d 两个窗口，凭据不出现在任何界面</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">Keychain 条目不叫默认名（CLAUDE_CONFIG_DIR 变体）</span>
+<span class="ec">只有旧版 .credentials.json</span>
+<span class="ec">token 已过期</span>
+</div></div>
+<div class="us p0" id="US-06">
+<div class="us-head">
+<span class="sid">US-06</span><span class="stitle">Codex 一键连接</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>Codex 用户</p></div>
+<div><label>场景</label><p>本机已有 Codex CLI 登录态</p></div>
+<div><label>期望</label><p>读取 auth.json 或 keyring 完成连接，展示 5h/7d 窗口 + credits + 可用重置次数</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 已 codex login／W 点&quot;连接 Codex&quot;／T 显示两个窗口与积分余额；账号 id 只用于请求头不展示</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">auth.json 与 keyring 都存在且不一致</span>
+<span class="ec">多账号（个人+团队）</span>
+<span class="ec">credits 字段缺失</span>
+</div></div>
+<div class="us p0" id="US-07">
+<div class="us-head">
+<span class="sid">US-07</span><span class="stitle">WorkBuddy 设备登录</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>WorkBuddy 用户</p></div>
+<div><label>场景</label><p>没有可复用的本机凭据</p></div>
+<div><label>期望</label><p>App 内一键打开官方登录页，登录完成后自动回到 App，无需粘贴任何东西</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 点&quot;连接 WorkBuddy&quot;／W 在打开的官方页面完成登录／T 自动轮询拿到 token 并显示积分余额（已实测该授权接口可用）</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">用户中途取消</span>
+<span class="ec">state 过期（超过有效期）</span>
+<span class="ec">国内版/国际版账号混用（token 打错域名 → 网关 401 HTML）</span>
+</div></div>
+<div class="us p1" id="US-08">
+<div class="us-head">
+<span class="sid">US-08</span><span class="stitle">官方 API Key 连接</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>macOS</span><span>Windows</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>企业/API 用户</p></div>
+<div><label>场景</label><p>有 OpenAI/Anthropic 管理 key</p></div>
+<div><label>期望</label><p>手动粘贴一次，只写入系统凭据库，可随时删除</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 在设置里粘贴 key／W 保存／T 立即验证一次并显示用量，明文只在输入框里出现一次</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">key 权限不足（无 admin）</span>
+<span class="ec">key 已撤销</span>
+<span class="ec">粘贴带空格/换行</span>
+</div></div>
+<div class="us p0" id="US-09">
+<div class="us-head">
+<span class="sid">US-09</span><span class="stitle">多账号 / 多渠道并列</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>工作+个人双账号用户</p></div>
+<div><label>场景</label><p>同一渠道两个账号 + 四个渠道并存</p></div>
+<div><label>期望</label><p>每账号独立卡片、独立刷新、独立失效，互不影响</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 连了 2 个 Claude + 1 个 Codex／W 打开面板／T 三张卡片并行，任一账号 401 只影响自己那张</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">两个账号同邮箱不同组织</span>
+<span class="ec">删除其中一个账号</span>
+<span class="ec">同一渠道两账号同时刷新</span>
+</div></div>
+<h3 class="act">日常读取 · 5 条</h3>
+<div class="us p0" id="US-10">
+<div class="us-head">
+<span class="sid">US-10</span><span class="stitle">L1 徽标只显示最紧张的一条</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>平时不打开面板</p></div>
+<div><label>期望</label><p>徽标显示&quot;最紧张的那个窗口&quot;的百分比，hover/长按出摘要</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 任一窗口用量 82%，其余 30%／W 看徽标／T 徽标为 82%，摘要按紧张度排序且标注渠道名</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">所有窗口都是 0%</span>
+<span class="ec">某渠道读取失败（应显示&quot;?&quot;而不是 0%）</span>
+<span class="ec">百分比为小数 82.4%</span>
+</div></div>
+<div class="us p0" id="US-11">
+<div class="us-head">
+<span class="sid">US-11</span><span class="stitle">L2 面板：窗口 + 复位倒计时 + 超额积分</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>需要做&quot;现在能不能开长任务&quot;的决策</p></div>
+<div><label>期望</label><p>一屏看清每个渠道每个窗口的已用比例、复位时间、超额余额与数据新鲜度</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 三个渠道正常／W 打开面板／T 每卡显示窗口条 + &quot;2h13m 后复位&quot; + 数据时间戳；过期数据降透明度并标注</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">倒计时跨过 00:00</span>
+<span class="ec">复位时间已过去但数据未更新</span>
+<span class="ec">超额积分为 0 或未开通</span>
+</div></div>
+<div class="us p1" id="US-12">
+<div class="us-head">
+<span class="sid">US-12</span><span class="stitle">从卡片跳到官方用量页</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>需要看明细的用户</p></div>
+<div><label>场景</label><p>想确认平台自己的统计</p></div>
+<div><label>期望</label><p>点卡片右上角外链，用系统浏览器打开该渠道官方用量/账单页</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 面板打开／W 点 Codex 卡片外链／T 浏览器打开 chatgpt 用量页，App 不内嵌登录态</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">浏览器未安装/被策略限制</span>
+<span class="ec">URL 需要登录（跳登录页）</span>
+</div></div>
+<div class="us p0" id="US-13">
+<div class="us-head">
+<span class="sid">US-13</span><span class="stitle">手动刷新与节流</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>重度用户</p></div>
+<div><label>场景</label><p>怀疑数据不对，想立刻拉一次</p></div>
+<div><label>期望</label><p>手动刷新有 30s 冷却，期间按钮禁用并显示剩余秒数</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 刚自动刷新过／W 连点刷新 3 次／T 只发出 1 次请求，按钮显示&quot;12s 后可刷新&quot;</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">离线时点刷新</span>
+<span class="ec">刷新中切到别的页面</span>
+<span class="ec">上游 429 后点刷新</span>
+</div></div>
+<div class="us p2" id="US-14">
+<div class="us-head">
+<span class="sid">US-14</span><span class="stitle">7/30 天燃尽与开销</span>
+<span class="pill p2">P2</span>
+<span class="plats"><span>macOS</span><span>Windows</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>想控成本的用户</p></div>
+<div><label>场景</label><p>看自己这一周怎么烧的</p></div>
+<div><label>期望</label><p>本地历史曲线（只存数值），标注&quot;估算&quot;且明确不含对话内容</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 累积 ≥ 2 天数据／W 打开历史页／T 曲线可切 7/30 天，无数据日显式留空不补零</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">跨时区旅行后日期桶错位</span>
+<span class="ec">某天只有部分数据（部分渠道离线）</span>
+</div></div>
+<h3 class="act">提醒与不打扰 · 4 条</h3>
+<div class="us p0" id="US-15">
+<div class="us-head">
+<span class="sid">US-15</span><span class="stitle">越线提醒（阈值 + 速度预测）</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>额度快用完但我没注意</p></div>
+<div><label>期望</label><p>用量 ≥ 80% 或按当前速度会在复位前耗尽时，弹一次可点击的通知</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 阈值 80%，当前 79% 且消耗加速／W 下一次轮询后／T 收到 1 条通知，点开直达该渠道卡片；同一窗口只提醒一次</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">阈值设为 100%</span>
+<span class="ec">同一窗口反复升降（抖动）</span>
+<span class="ec">用户已静音通知</span>
+</div></div>
+<div class="us p1" id="US-16">
+<div class="us-head">
+<span class="sid">US-16</span><span class="stitle">复位前 30 分钟提醒</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>规划任务的用户</p></div>
+<div><label>场景</label><p>额度即将重置</p></div>
+<div><label>期望</label><p>复位前 30 分钟提示一次&quot;可以放心开长任务&quot;，复位后回到正常档位</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 窗口 resets_at 在 30 分钟内／W 到点／T 收到 1 条提醒；复位后不重复提醒</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">系统睡眠跨过提醒时刻</span>
+<span class="ec">resets_at 缺失</span>
+<span class="ec">多个窗口同一分钟复位（应合并为 1 条）</span>
+</div></div>
+<div class="us p0" id="US-17">
+<div class="us-head">
+<span class="sid">US-17</span><span class="stitle">勿扰/全屏/演示时闭嘴</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>演示中的用户</p></div>
+<div><label>场景</label><p>正在投屏或专注工作</p></div>
+<div><label>期望</label><p>系统勿扰、全屏应用、锁屏期间不弹任何通知，只更新数字；结束后给一条汇总</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 开启勿扰／W 触发越线／T 无通知出现，退出勿扰后收到 1 条汇总而非逐条补发</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">勿扰中用户主动打开面板（应可看）</span>
+<span class="ec">全屏视频播放</span>
+<span class="ec">系统勿扰与 App 静音同时开启</span>
+</div></div>
+<div class="us p1" id="US-18">
+<div class="us-head">
+<span class="sid">US-18</span><span class="stitle">一键静音与临时暂停</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>接下来 2 小时不想被打扰</p></div>
+<div><label>期望</label><p>可静音 1h / 4h / 今天；静音期间只更新不提醒，到期自动恢复并在徽标上有暗示</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 点&quot;静音 4h&quot;／W 期间触发越线／T 无通知、徽标带静音标记、到期后下一条提醒正常发出</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">静音期间退出 App</span>
+<span class="ec">系统重启后静音状态是否保留</span>
+<span class="ec">静音与&quot;暂停监控&quot;同时开</span>
+</div></div>
+<h3 class="act">异常与降级 · 6 条</h3>
+<div class="us p0" id="US-19">
+<div class="us-head">
+<span class="sid">US-19</span><span class="stitle">离线时保留最后快照并自曝</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>地铁/飞机上没网</p></div>
+<div><label>期望</label><p>继续显示最后一次数据，明确标注&quot;12 分钟前&quot;，不弹错误弹窗，不把数字归零</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 有缓存数据／W 断网 5 分钟／T 卡片显示缓存值 + 时间 + 灰色状态点，恢复网络后自动刷新一次</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">首次启动就离线（无缓存可显示）</span>
+<span class="ec">断网超过 24 小时（缓存过期策略）</span>
+<span class="ec">断网期间系统时间被改</span>
+</div></div>
+<div class="us p0" id="US-20">
+<div class="us-head">
+<span class="sid">US-20</span><span class="stitle">授权过期 → 一键重登</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>token 失效或被踢下线</p></div>
+<div><label>期望</label><p>卡片显示&quot;需要重新登录&quot;，一个按钮回到授权流程，其它渠道不受影响</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 人为让 token 失效／W 下一次刷新返回 401／T 该卡片变&quot;需重登&quot;且不显示旧百分比；点击后 2 步内恢复</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">刷新 token 会顶掉 CLI 的登录（必须只读优先）</span>
+<span class="ec">重登时网络失败</span>
+<span class="ec">两个账号同时失效</span>
+</div></div>
+<div class="us p0" id="US-21">
+<div class="us-head">
+<span class="sid">US-21</span><span class="stitle">限流时安静退避</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>重度用户</p></div>
+<div><label>场景</label><p>刷太快被 429</p></div>
+<div><label>期望</label><p>显示&quot;限流中，X 分钟后重试&quot;，指数退避，不连环重试、不影响其它渠道</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 上游返回 429 + Retry-After／W 等待／T 该渠道按 Retry-After 排下一次，期间不发起请求；其它渠道照常</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">Retry-After 缺失或非法值</span>
+<span class="ec">429 持续超过 1 小时</span>
+<span class="ec">429 与 401 同时出现（401 优先）</span>
+</div></div>
+<div class="us p0" id="US-22">
+<div class="us-head">
+<span class="sid">US-22</span><span class="stitle">端点变更 / 返回非 JSON</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>上游改接口或被网关拦截</p></div>
+<div><label>期望</label><p>识别为&quot;渠道暂不可用&quot;，保留历史，提示&quot;上报&quot;，绝不显示 0% 或 100%</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 让接口返回 HTML 401（WorkBuddy 网关真实行为）／W 下一次刷新／T 卡片显示&quot;渠道暂不可用&quot;+ 上报入口，历史仍在</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">返回 200 但结构变了（字段全缺失）</span>
+<span class="ec">返回 200 但 utilization 是字符串</span>
+<span class="ec">接口 302 跳登录页</span>
+</div></div>
+<div class="us p1" id="US-23">
+<div class="us-head">
+<span class="sid">US-23</span><span class="stitle">Gemini 消费级停服的显式引导</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>Gemini 个人订阅用户</p></div>
+<div><label>场景</label><p>旧的 Gemini CLI 额度通道已停服</p></div>
+<div><label>期望</label><p>不显示 0%，而是明确说明&quot;个人账号通道已停用&quot;，给出 Antigravity 的迁移按钮</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 用个人 Google 账号连接／W 刷新／T 显示停服说明 + &quot;改用 Antigravity&quot; 按钮；点按钮进入 agy 授权说明</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">企业 Standard/Enterprise 席位（仍应可用，不能误报停服）</span>
+<span class="ec">用户同时装了 agy 但未登录</span>
+<span class="ec">网页 cookie 通道返回签名漂移</span>
+</div></div>
+<div class="us p2" id="US-24">
+<div class="us-head">
+<span class="sid">US-24</span><span class="stitle">不支持的账号类型</span>
+<span class="pill p2">P2</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>企业席位用户</p></div>
+<div><label>场景</label><p>账号类型拿不到额度接口</p></div>
+<div><label>期望</label><p>说明&quot;该账号类型暂不支持&quot;，不伪装成故障，也不反复重试</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 用无 admin 权限的 API key／W 连接／T 卡片显示&quot;不支持&quot;并给出可用的替代（如联系管理员/换订阅）</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">同一账号既像个人又像企业</span>
+<span class="ec">不支持状态被缓存后账号升级了</span>
+</div></div>
+<h3 class="act">隐藏与退出 · 5 条</h3>
+<div class="us p0" id="US-25">
+<div class="us-head">
+<span class="sid">US-25</span><span class="stitle">L0 完全隐藏</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>极简主义者</p></div>
+<div><label>场景</label><p>不想在状态栏看到任何东西</p></div>
+<div><label>期望</label><p>状态栏/托盘 0 图标，进程仍在后台；快捷键一键唤出面板，再一键收回</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 设为 L0／W 看状态栏／T 无任何图标与占位；按 ⌥⌘Q（Win: Alt+Q）出面板；空闲 CPU &lt; 0.5%</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">快捷键与其它 App 冲突</span>
+<span class="ec">托盘区已被折叠（Windows）</span>
+<span class="ec">L0 时通知是否仍然发（应可配置）</span>
+</div></div>
+<div class="us p1" id="US-26">
+<div class="us-head">
+<span class="sid">US-26</span><span class="stitle">暂停监控</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>休假中的用户</p></div>
+<div><label>场景</label><p>接下来一周不用看</p></div>
+<div><label>期望</label><p>暂停 1h/今天/直到手动恢复；暂停期间零请求、零通知，恢复后立即刷新</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 点&quot;暂停到今天结束&quot;／W 观察 24h／T 无任何网络请求与通知；第二天首次启动自动刷新一次</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">暂停期间系统重启</span>
+<span class="ec">暂停到期时设备未开机</span>
+<span class="ec">暂停与自动更新同时发生</span>
+</div></div>
+<div class="us p0" id="US-27">
+<div class="us-head">
+<span class="sid">US-27</span><span class="stitle">卸载不留痕迹</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>换机或不想用了</p></div>
+<div><label>期望</label><p>卸载后不残留开机项、凭据副本、缓存与日志；文档写明清理路径</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 正常使用 3 天／W 卸载／T 开机项消失、缓存目录被删、文档列出的路径逐一不存在</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">卸载时 App 正在运行</span>
+<span class="ec">Windows 卸载需要管理员的旧安装</span>
+<span class="ec">iOS/Android 卸载后桌面 Hub 配对记录仍在</span>
+</div></div>
+<div class="us p0" id="US-28">
+<div class="us-head">
+<span class="sid">US-28</span><span class="stitle">多显示器 / 睡眠唤醒 / 系统主题切换</span>
+<span class="pill p0">P0</span>
+<span class="plats"><span>macOS</span><span>Windows</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>桌面重度用户</p></div>
+<div><label>场景</label><p>合盖、外接屏、切换深色模式</p></div>
+<div><label>期望</label><p>唤醒后 3 秒内恢复显示，多显示器只在主屏的状态栏出现一次，深浅色都读得清</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 外接 2 台不同 DPI 显示器／W 睡眠 30 分钟后唤醒／T 图标不重复、不错位、不清空数据</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">macOS 26 图标被系统抑制（需 AppKit 兜底/重置）</span>
+<span class="ec">唤醒时无网络</span>
+<span class="ec">显示器热插拔</span>
+</div></div>
+<div class="us p2" id="US-32">
+<div class="us-head">
+<span class="sid">US-32</span><span class="stitle">自动更新不打断</span>
+<span class="pill p2">P2</span>
+<span class="plats"><span>macOS</span><span>Windows</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>所有用户</p></div>
+<div><label>场景</label><p>后台自动升级</p></div>
+<div><label>期望</label><p>静默下载、下次启动生效；升级不丢设置与历史，失败可回退</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 有新版本／W 自动更新／T 更新后设置与历史完整，版本号变化；更新期间不弹窗</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">更新中断（断电）</span>
+<span class="ec">新版本渠道 schema 变更</span>
+<span class="ec">签名不匹配被系统阻止</span>
+</div></div>
+<h3 class="act">跨设备 · 3 条</h3>
+<div class="us p1" id="US-29">
+<div class="us-head">
+<span class="sid">US-29</span><span class="stitle">桌面 Hub 配对给手机</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>macOS</span><span>Windows</span><span>Android</span><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>桌面+手机用户</p></div>
+<div><label>场景</label><p>手机上也想看同一份额度</p></div>
+<div><label>期望</label><p>桌面生成 6 位配对码，手机输入后同步数值；不传输任何 token</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 桌面与手机同 Wi-Fi／W 手机输入配对码／T 手机上 5s 内出现与桌面一致的卡片；抓包确认无 token 字段</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">两台桌面都可做 Hub</span>
+<span class="ec">配对码错误/过期</span>
+<span class="ec">Hub 离线 30 分钟后手机显示什么</span>
+</div></div>
+<div class="us p1" id="US-30">
+<div class="us-head">
+<span class="sid">US-30</span><span class="stitle">iOS 小组件与灵动岛</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>iOS</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>iPhone 用户</p></div>
+<div><label>场景</label><p>不解锁也能看到额度</p></div>
+<div><label>期望</label><p>锁屏/主屏小组件显示最紧张窗口；额度越线时可启动 Live Activity 在灵动岛显示</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 已配对／W 添加中号小组件／T 显示渠道 + 百分比 + 复位倒计时；点开进 App 对应卡片</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">系统后台刷新被限（数据变旧）</span>
+<span class="ec">Live Activity 超过时长上限</span>
+<span class="ec">未开启实时活动权限</span>
+</div></div>
+<div class="us p1" id="US-31">
+<div class="us-head">
+<span class="sid">US-31</span><span class="stitle">Android 常驻通知 + 磁贴</span>
+<span class="pill p1">P1</span>
+<span class="plats"><span>Android</span></span>
+</div><div class="us-grid">
+<div><label>角色</label><p>Android 用户</p></div>
+<div><label>场景</label><p>锁屏下拉就能看到</p></div>
+<div><label>期望</label><p>常驻通知显示最紧张窗口与倒计时，磁贴一键展开；关闭监控即全部消失</p></div>
+<div class="gwt"><label>验收 · Given / When / Then</label><p>G 已配对并授权通知／W 下拉通知栏／T 看到常驻通知（不可滑除）；点磁贴出面板；关闭监控后通知消失</p></div>
+</div><div class="edges"><b>边界条件</b>
+<span class="ec">用户拒绝通知权限（Android 13+）</span>
+<span class="ec">厂商省电策略杀进程</span>
+<span class="ec">通知被用户手动关闭后如何提示</span>
+</div></div>
+</section>
+<section><h2><span class="num">03</span>边界条件总表</h2>
+<p class="lede">50 条，按类别分组。每条的"验证"列直接对应测试形式：可自动化的已经标出，剩下的就是真机手工项。</p>
+<div class="tablewrap"><table><thead><tr><th style="width:9%">类别</th><th style="width:31%">条件</th><th style="width:37%">期望行为</th><th>验证方式</th></tr></thead><tbody>
+<tr><td><b>授权</b></td><td>凭据文件不存在 / 目录权限不足</td><td>空状态，不报错</td><td>自动化：mock 文件系统</td></tr>
+<tr><td></td><td>凭据 JSON 损坏或字段缺失</td><td>&quot;凭据无法解析&quot;+ 重新登录入口</td><td>自动化：fixture</td></tr>
+<tr><td></td><td>access token 已过期但 refresh token 可用</td><td>静默续期一次，失败则转&quot;需重登&quot;</td><td>自动化：mock 401→200</td></tr>
+<tr><td></td><td>refresh 失败 invalid_grant</td><td>转&quot;需重登&quot;，不再重试</td><td>自动化</td></tr>
+<tr><td></td><td>刷新会顶掉 CLI 登录（Claude 单次 refresh token）</td><td>只在过期/401 时刷新，刷新前重读磁盘</td><td>代码审查 + 集成测试</td></tr>
+<tr><td></td><td>Keychain 被 TCC 拒绝</td><td>降级为文件读取或提示授权，不崩溃</td><td>手工（真机）</td></tr>
+<tr><td></td><td>WorkBuddy 登录 state 过期</td><td>提示&quot;登录超时&quot;并可一键重来</td><td>自动化：mock 超时</td></tr>
+<tr><td></td><td>WorkBuddy 国内/国际账号混用域名</td><td>按账号 domain 选择端点，401 时提示版本不匹配</td><td>集成测试</td></tr>
+<tr><td></td><td>同时连接同一渠道两个账号</td><td>两张独立卡片，互不覆盖历史</td><td>自动化</td></tr>
+<tr><td></td><td>用户删除某渠道</td><td>凭据副本一并删除，历史可选择保留</td><td>自动化</td></tr>
+<tr><td><b>网络</b></td><td>完全离线</td><td>保留快照 + 标注时间，无错误弹窗</td><td>自动化：断网 mock</td></tr>
+<tr><td></td><td>首次启动即离线</td><td>空状态 + &quot;无网络&quot;提示，不显示 0%</td><td>自动化</td></tr>
+<tr><td></td><td>请求超时 30s</td><td>视为一次失败，进入退避，不叠加并发</td><td>自动化</td></tr>
+<tr><td></td><td>HTTP 401 返回 HTML 而非 JSON（网关行为）</td><td>识别为鉴权失败而非解析崩溃</td><td>子串/内容类型判断，测试覆盖</td></tr>
+<tr><td></td><td>HTTP 429 带 Retry-After</td><td>严格按 Retry-After 排下一次，期间不发请求</td><td>自动化</td></tr>
+<tr><td></td><td>HTTP 429 无 Retry-After</td><td>指数退避 2/5/10/15 分钟封顶</td><td>自动化</td></tr>
+<tr><td></td><td>5xx 持续 1 小时</td><td>保持&quot;暂不可用&quot;，每小时探活一次</td><td>自动化</td></tr>
+<tr><td></td><td>系统代理 / 证书错误</td><td>给出可操作错误（代理不支持/证书无效）</td><td>手工</td></tr>
+<tr><td><b>数据</b></td><td>credits 字段为 null</td><td>不显示余额行，不显示 0</td><td>自动化：fixture</td></tr>
+<tr><td></td><td>utilization 超过 100 或为负</td><td>夹取到 0–100 并标注异常</td><td>自动化</td></tr>
+<tr><td></td><td>时间戳秒 vs 毫秒混用</td><td>按量级判定，倒计时不为负</td><td>自动化</td></tr>
+<tr><td></td><td>resets_at 已过去但窗口未重置</td><td>显示&quot;等待上游刷新&quot;，不自行加窗口</td><td>自动化</td></tr>
+<tr><td></td><td>上游新增窗口类型（如七天的某模型专属）</td><td>未知窗口折叠显示为一个额外条</td><td>自动化：fixture 演进</td></tr>
+<tr><td></td><td>百分比是小数 82.4</td><td>显示一位小数，徽标取整策略一致</td><td>自动化</td></tr>
+<tr><td><b>时间</b></td><td>用户修改系统时区</td><td>仅影响显示，窗口锚点不变</td><td>自动化：tz 注入</td></tr>
+<tr><td></td><td>夏令时切换</td><td>倒计时单调，不出现 +1h/-1h 跳变</td><td>自动化（tz=Europe/Berlin）</td></tr>
+<tr><td></td><td>系统时钟被设为未来</td><td>倒计时不为负，提示时钟异常</td><td>自动化</td></tr>
+<tr><td></td><td>跨午夜/跨周窗口边界</td><td>日期桶与复位时间按渠道时区计算</td><td>自动化</td></tr>
+<tr><td><b>系统</b></td><td>勿扰 / 专注模式</td><td>通知不弹，数据照更</td><td>手工 + 系统 API 单测</td></tr>
+<tr><td></td><td>全屏应用 / 演示</td><td>同上，退出后一条汇总</td><td>手工</td></tr>
+<tr><td></td><td>锁屏/睡眠唤醒</td><td>3s 内恢复，不重复图标</td><td>手工</td></tr>
+<tr><td></td><td>多显示器不同 DPI</td><td>图标只出现一次且清晰</td><td>手工 + 截图基线</td></tr>
+<tr><td></td><td>深色/浅色/高对比度切换</td><td>文字对比 ≥ 4.5:1</td><td>自动化：对比度断言</td></tr>
+<tr><td></td><td>macOS 26 状态栏被系统抑制</td><td>重启/重置后恢复，或提示手动开启</td><td>手工（真机）</td></tr>
+<tr><td></td><td>Windows 托盘溢出区折叠</td><td>仍可通过快捷键/开始菜单打开</td><td>手工</td></tr>
+<tr><td></td><td>Android 通知权限被拒</td><td>引导开启，磁贴仍可用</td><td>手工</td></tr>
+<tr><td></td><td>Android 省电策略杀进程</td><td>下次打开自愈，不重复通知</td><td>手工</td></tr>
+<tr><td><b>交互</b></td><td>L0 快捷键与系统/其它 App 冲突</td><td>允许自定义，冲突时提示</td><td>手工</td></tr>
+<tr><td></td><td>连点刷新 / 刷新中切页</td><td>单飞（in-flight 去重）</td><td>自动化</td></tr>
+<tr><td></td><td>键盘导航 / VoiceOver / TalkBack</td><td>全部可操作，图标有可读标签</td><td>手工 + 自动化 a11y 检查</td></tr>
+<tr><td></td><td>面板在 4K 上字号过小</td><td>跟随系统缩放，支持字号设置</td><td>手工</td></tr>
+<tr><td><b>生命周期</b></td><td>崩溃后重启</td><td>恢复最后快照与静音/暂停状态</td><td>自动化</td></tr>
+<tr><td></td><td>多实例启动</td><td>单实例锁，第二次唤出已有窗口</td><td>自动化</td></tr>
+<tr><td></td><td>自动更新中断</td><td>回滚到旧版本，不损坏配置</td><td>手工</td></tr>
+<tr><td></td><td>卸载</td><td>清理开机项/凭据/缓存/日志</td><td>自动化脚本核对路径</td></tr>
+<tr><td><b>跨设备</b></td><td>Hub 离线</td><td>手机显示&quot;桌面未连接&quot; + 最后同步时间</td><td>自动化</td></tr>
+<tr><td></td><td>两台桌面同时做 Hub</td><td>配对时显式选择其一</td><td>手工</td></tr>
+<tr><td></td><td>快照 schema 版本不一致</td><td>拒绝并提示升级较旧的一端</td><td>自动化</td></tr>
+<tr><td><b>隐私</b></td><td>日志/诊断包</td><td>不含 token、邮箱（可选匿名 id）</td><td>自动化：正则扫描</td></tr>
+<tr><td></td><td>截图/录屏时</td><td>面板不含凭据明文（本就不显示）</td><td>代码审查</td></tr>
+</tbody></table></div></section>
+<section><h2><span class="num">04</span>覆盖矩阵（脚本核对，无空格）</h2>
+<p class="lede">上表：8 种状态 × 4 个平台，格内是该状态下负责该平台的故事编号。下表：三档可见性 × 4 个平台。</p>
+<div class="tablewrap"><table class="mtx"><thead><tr><th>状态 \ 平台</th>
+<th>macOS</th>
+<th>Windows</th>
+<th>Android</th>
+<th>iOS</th>
+</tr></thead><tbody>
+<tr><td><b>未配置</b></td>
+<td class="hit"><a href="#US-01">01</a> <a href="#US-04">04</a> <a href="#US-27">27</a></td>
+<td class="hit"><a href="#US-02">02</a> <a href="#US-04">04</a> <a href="#US-27">27</a></td>
+<td class="hit"><a href="#US-04">04</a> <a href="#US-27">27</a></td>
+<td class="hit"><a href="#US-04">04</a> <a href="#US-27">27</a></td>
+</tr>
+<tr><td><b>授权中</b></td>
+<td class="hit"><a href="#US-03">03</a> <a href="#US-05">05</a> <a href="#US-06">06</a> <a href="#US-07">07</a> <a href="#US-08">08</a></td>
+<td class="hit"><a href="#US-03">03</a> <a href="#US-05">05</a> <a href="#US-06">06</a> <a href="#US-07">07</a> <a href="#US-08">08</a></td>
+<td class="hit"><a href="#US-03">03</a> <a href="#US-07">07</a></td>
+<td class="hit"><a href="#US-03">03</a> <a href="#US-07">07</a></td>
+</tr>
+<tr><td><b>正常</b></td>
+<td class="hit"><a href="#US-09">09</a> <a href="#US-10">10</a> <a href="#US-11">11</a> <a href="#US-12">12</a> <a href="#US-13">13</a> <a href="#US-14">14</a> <a href="#US-15">15</a> <a href="#US-16">16</a> <a href="#US-17">17</a> <a href="#US-18">18</a> <a href="#US-25">25</a> <a href="#US-26">26</a> <a href="#US-28">28</a> <a href="#US-29">29</a> <a href="#US-32">32</a></td>
+<td class="hit"><a href="#US-09">09</a> <a href="#US-10">10</a> <a href="#US-11">11</a> <a href="#US-12">12</a> <a href="#US-13">13</a> <a href="#US-14">14</a> <a href="#US-15">15</a> <a href="#US-16">16</a> <a href="#US-17">17</a> <a href="#US-18">18</a> <a href="#US-25">25</a> <a href="#US-26">26</a> <a href="#US-28">28</a> <a href="#US-29">29</a> <a href="#US-32">32</a></td>
+<td class="hit"><a href="#US-09">09</a> <a href="#US-11">11</a> <a href="#US-12">12</a> <a href="#US-13">13</a> <a href="#US-15">15</a> <a href="#US-16">16</a> <a href="#US-17">17</a> <a href="#US-18">18</a> <a href="#US-25">25</a> <a href="#US-26">26</a> <a href="#US-29">29</a> <a href="#US-31">31</a></td>
+<td class="hit"><a href="#US-09">09</a> <a href="#US-11">11</a> <a href="#US-12">12</a> <a href="#US-13">13</a> <a href="#US-15">15</a> <a href="#US-16">16</a> <a href="#US-17">17</a> <a href="#US-18">18</a> <a href="#US-25">25</a> <a href="#US-26">26</a> <a href="#US-29">29</a> <a href="#US-30">30</a></td>
+</tr>
+<tr><td><b>过期(stale)</b></td>
+<td class="hit"><a href="#US-19">19</a></td>
+<td class="hit"><a href="#US-19">19</a></td>
+<td class="hit"><a href="#US-19">19</a></td>
+<td class="hit"><a href="#US-19">19</a></td>
+</tr>
+<tr><td><b>需重登</b></td>
+<td class="hit"><a href="#US-20">20</a></td>
+<td class="hit"><a href="#US-20">20</a></td>
+<td class="hit"><a href="#US-20">20</a></td>
+<td class="hit"><a href="#US-20">20</a></td>
+</tr>
+<tr><td><b>限流</b></td>
+<td class="hit"><a href="#US-21">21</a></td>
+<td class="hit"><a href="#US-21">21</a></td>
+<td class="hit"><a href="#US-21">21</a></td>
+<td class="hit"><a href="#US-21">21</a></td>
+</tr>
+<tr><td><b>已停服</b></td>
+<td class="hit"><a href="#US-22">22</a> <a href="#US-23">23</a></td>
+<td class="hit"><a href="#US-22">22</a> <a href="#US-23">23</a></td>
+<td class="hit"><a href="#US-22">22</a> <a href="#US-23">23</a></td>
+<td class="hit"><a href="#US-22">22</a> <a href="#US-23">23</a></td>
+</tr>
+<tr><td><b>不支持</b></td>
+<td class="hit"><a href="#US-24">24</a></td>
+<td class="hit"><a href="#US-24">24</a></td>
+<td class="hit"><a href="#US-24">24</a></td>
+<td class="hit"><a href="#US-24">24</a></td>
+</tr>
+</tbody></table></div>
+<div style="height:14px"></div>
+<div class="tablewrap"><table class="mtx"><thead><tr><th>可见性 \ 平台</th>
+<th>macOS</th>
+<th>Windows</th>
+<th>Android</th>
+<th>iOS</th>
+</tr></thead><tbody>
+<tr><td><b>L0</b></td>
+<td class="hit"><a href="#US-18">18</a> <a href="#US-25">25</a> <a href="#US-26">26</a></td>
+<td class="hit"><a href="#US-18">18</a> <a href="#US-25">25</a> <a href="#US-26">26</a></td>
+<td class="hit"><a href="#US-18">18</a> <a href="#US-25">25</a> <a href="#US-26">26</a></td>
+<td class="hit"><a href="#US-18">18</a> <a href="#US-25">25</a> <a href="#US-26">26</a></td>
+</tr>
+<tr><td><b>L1</b></td>
+<td class="hit"><a href="#US-10">10</a> <a href="#US-17">17</a> <a href="#US-18">18</a> <a href="#US-19">19</a> <a href="#US-20">20</a> <a href="#US-21">21</a> <a href="#US-22">22</a> <a href="#US-28">28</a> <a href="#US-29">29</a></td>
+<td class="hit"><a href="#US-10">10</a> <a href="#US-17">17</a> <a href="#US-18">18</a> <a href="#US-19">19</a> <a href="#US-20">20</a> <a href="#US-21">21</a> <a href="#US-22">22</a> <a href="#US-28">28</a> <a href="#US-29">29</a></td>
+<td class="hit"><a href="#US-17">17</a> <a href="#US-18">18</a> <a href="#US-19">19</a> <a href="#US-20">20</a> <a href="#US-21">21</a> <a href="#US-22">22</a> <a href="#US-29">29</a> <a href="#US-31">31</a></td>
+<td class="hit"><a href="#US-17">17</a> <a href="#US-18">18</a> <a href="#US-19">19</a> <a href="#US-20">20</a> <a href="#US-21">21</a> <a href="#US-22">22</a> <a href="#US-29">29</a> <a href="#US-30">30</a></td>
+</tr>
+<tr><td><b>L2</b></td>
+<td class="hit"><a href="#US-09">09</a> <a href="#US-11">11</a> <a href="#US-12">12</a> <a href="#US-13">13</a> <a href="#US-14">14</a> <a href="#US-17">17</a> <a href="#US-19">19</a> <a href="#US-20">20</a> <a href="#US-21">21</a> <a href="#US-22">22</a> <a href="#US-23">23</a> <a href="#US-24">24</a> <a href="#US-28">28</a> <a href="#US-29">29</a></td>
+<td class="hit"><a href="#US-09">09</a> <a href="#US-11">11</a> <a href="#US-12">12</a> <a href="#US-13">13</a> <a href="#US-14">14</a> <a href="#US-17">17</a> <a href="#US-19">19</a> <a href="#US-20">20</a> <a href="#US-21">21</a> <a href="#US-22">22</a> <a href="#US-23">23</a> <a href="#US-24">24</a> <a href="#US-28">28</a> <a href="#US-29">29</a></td>
+<td class="hit"><a href="#US-09">09</a> <a href="#US-11">11</a> <a href="#US-12">12</a> <a href="#US-13">13</a> <a href="#US-17">17</a> <a href="#US-19">19</a> <a href="#US-20">20</a> <a href="#US-21">21</a> <a href="#US-22">22</a> <a href="#US-23">23</a> <a href="#US-24">24</a> <a href="#US-29">29</a> <a href="#US-31">31</a></td>
+<td class="hit"><a href="#US-09">09</a> <a href="#US-11">11</a> <a href="#US-12">12</a> <a href="#US-13">13</a> <a href="#US-17">17</a> <a href="#US-19">19</a> <a href="#US-20">20</a> <a href="#US-21">21</a> <a href="#US-22">22</a> <a href="#US-23">23</a> <a href="#US-24">24</a> <a href="#US-29">29</a> <a href="#US-30">30</a></td>
+</tr>
+</tbody></table></div>
+<div class="note">矩阵为空即缺陷。当前构建：状态矩阵 32/32 有归属，可见性矩阵 12/12 有归属。移动端不直接持有桌面凭据，因此「授权中」在 Android/iOS 上由 US-07（设备登录）与 US-29（Hub 配对）承担。</div></section>
+<section><h2><span class="num">05</span>体验闭环：12 条端到端断言</h2>
+<p class="lede">这些不是单元测试，是"从用户动作到用户感知"的闭环。每条都能用脚本或录屏计时客观核对。</p>
+<div class="tablewrap"><table><thead><tr><th style="width:26%">闭环</th><th style="width:34%">门槛</th><th>怎么量</th></tr></thead><tbody>
+<tr><td><b>首装到看见数字</b></td><td>≤ 90 秒（含 1 次授权）</td><td>录屏计时 + 自动化脚本</td></tr>
+<tr><td><b>越线到用户看到提醒</b></td><td>≤ 2 分钟（含轮询周期）</td><td>注入 fixture 后计时</td></tr>
+<tr><td><b>401 到恢复</b></td><td>≤ 1 次点击 + 1 次刷新</td><td>自动化 e2e</td></tr>
+<tr><td><b>L0 空闲资源</b></td><td>CPU &lt; 0.5%，内存 &lt; 120MB</td><td>仪器采样 10 分钟</td></tr>
+<tr><td><b>过期数据自曝</b></td><td>超过 3 个轮询周期必标注</td><td>自动化：冻结时钟</td></tr>
+<tr><td><b>单渠道故障隔离</b></td><td>其它渠道刷新成功率 100%</td><td>故障注入测试</td></tr>
+<tr><td><b>静音/暂停期间</b></td><td>0 通知、0 请求</td><td>抓包 + 通知计数</td></tr>
+<tr><td><b>卸载残留</b></td><td>文档列出的路径全部为空</td><td>卸载脚本断言</td></tr>
+<tr><td><b>跨设备一致</b></td><td>差值 ≤ 1 个轮询周期</td><td>双端对照</td></tr>
+<tr><td><b>对比度</b></td><td>所有正文 ≥ 4.5:1，大字号 ≥ 3:1</td><td>脚本计算</td></tr>
+<tr><td><b>凭据不出本机</b></td><td>抓包中 0 处 token 明文</td><td>Hub 同步抓包</td></tr>
+<tr><td><b>空状态不撒谎</b></td><td>无数据时 0 个百分比显示为 0</td><td>fixture 覆盖</td></tr>
+</tbody></table></div></section>
+<section><h2><span class="num">06</span>P0 验收门槛（Definition of Done）</h2>
+<p class="lede">P0 不是"功能做完"，是下面 9 条同时成立。任何一条不成立，就不发版。</p>
+<div class="tablewrap"><table><thead><tr><th style="width:34%">条件</th><th>判定标准</th></tr></thead><tbody>
+<tr><td><b>两真机连跑 3 天</b></td><td>macOS + Windows 各一台，Claude/Codex/WorkBuddy 三渠道，无崩溃、无未处理异常</td></tr>
+<tr><td><b>八状态全覆盖</b></td><td>用 fixture + 断网/401/429 注入，8 种状态各出现一次且 UI 符合第 01 节</td></tr>
+<tr><td><b>50 条边界抽检 ≥ 30</b></td><td>P0 相关边界（授权/网络/数据/交互/生命周期）全部通过</td></tr>
+<tr><td><b>12 条闭环全部达标</b></td><td>第 05 节逐条计时记录</td></tr>
+<tr><td><b>L0 时 0 图标 0 打扰</b></td><td>状态栏/托盘无图标，空闲 CPU &lt; 0.5%，静音期间 0 通知</td></tr>
+<tr><td><b>单渠道故障隔离</b></td><td>人为打挂一个渠道，其余三个刷新成功率 100%</td></tr>
+<tr><td><b>凭据零外泄</b></td><td>抓包 + 日志扫描：0 处 token 明文，Hub 同步只含数值</td></tr>
+<tr><td><b>可卸载干净</b></td><td>文档路径全部为空，开机项消失</td></tr>
+<tr><td><b>对比度达标</b></td><td>正文 ≥ 4.5:1，脚本输出报告存档</td></tr>
+</tbody></table></div></section>
+<section><h2><span class="num">07</span>WorkBuddy 接入：从"抓包猜"升级为"已实测"</h2>
+<p class="lede">你指的反代项目确实把这条路走通了。我读了它的源码并直接打了一遍官方接口，结论比上一版报告乐观得多。</p>
+<div class="tablewrap"><table><thead><tr><th style="width:30%">能力</th><th style="width:38%">接口</th><th>实测 / 证据</th></tr></thead><tbody>
+<tr><td><b>发起授权</b></td><td>POST <code>https://www.workbuddy.cn/v2/plugin/auth/state?platform=workbuddy-web</code></td><td>本机实测 <b>200</b>，返回 <code>data.state</code>（UUID）+ <code>data.authUrl</code>（官方登录页）</td></tr>
+<tr><td><b>换取 token</b></td><td><code>{api}/v2/plugin/auth/token?state=…</code> + <code>…/login/account?state=…</code></td><td>源码 <code>crates/…/modules/oauth.rs</code>，轮询式，等价于设备码流程</td></tr>
+<tr><td><b>积分余额</b></td><td>POST <code>https://www.workbuddy.cn/billing/meter/get-user-resource-summary</code></td><td>无凭据访问实测 <b>401</b>（端点存在，网关 APISIX）；需 <code>Authorization: Bearer</code> + <code>X-User-Id</code> / <code>X-Enterprise-Id</code> / <code>X-Domain</code></td></tr>
+<tr><td><b>用量明细</b></td><td>POST <code>/billing/meter/get-user-request-usage</code>（国内 <code>workbuddy.cn</code> / 国际 <code>workbuddy.ai</code>）</td><td>源码 <code>official_usage.rs</code>；按账号 domain 选域名，混用会拿到 401 HTML</td></tr>
+<tr><td><b>字段</b></td><td>资源包 <code>total</code> / <code>used</code> / <code>expireAt</code> / <code>expired</code>；汇总 <code>totalCapacity</code> / <code>totalRemaining</code></td><td>源码 <code>credits.rs</code>；商品码 <code>p_tcaca</code>，另有 paid/free packages 两个明细接口</td></tr>
+</tbody></table></div>
+<div class="note"><b>结论修正：</b>WorkBuddy 不需要"抓包 + cookie"这种最脏的做法，它有可用的<b>设备登录流程</b>（打开官方页面 → 轮询换 token），和 Claude/Codex 的体验一致。因此它可以进 P0，而不是 P2。剩余风险只有两条：端点未公开（随时可改）、国内版与国际版是两套账号体系且端点不同（US-07 的边界条件已覆盖）。</div>
+<div class="warnbox">仍属于灰色地带：这些接口是客户端自用的，没有公开文档与 SLA；只读展示自己的积分不代跑推理，风险可控但不为零。一旦企业版要求合规审查，需要能一键关闭该渠道。</div></section>
+<footer><span>AI 额度 HUD · 用户故事与边界规格 v1 · 2026-10-30</span><span>配套：可行性调研与架构方案（ai-quota-hud-report.html）</span></footer>
+</div></body></html>

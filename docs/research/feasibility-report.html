@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 额度 HUD · 可行性调研与架构方案 v1</title>
+<style>
+  :root{
+    --bg:#020617; --card:#0b1220; --card2:#0f172a; --line:#1e293b; --line2:#243449;
+    --tx:#e2e8f0; --mut:#94a3b8; --dim:#64748b;
+    --cyan:#22d3ee; --em:#34d399; --vio:#a78bfa; --amb:#fbbf24; --rose:#fb7185;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font-family:"JetBrains Mono",ui-monospace,"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.55}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;
+    background-image:linear-gradient(#1e293b 1px,transparent 1px),linear-gradient(90deg,#1e293b 1px,transparent 1px);
+    background-size:40px 40px;opacity:.28;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:48px 28px 72px}
+  header{display:flex;flex-direction:column;gap:12px;margin-bottom:36px}
+  .eyebrow{display:flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--em);box-shadow:0 0 0 0 rgba(52,211,153,.7);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}70%{box-shadow:0 0 0 9px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+  h1{font-size:29px;line-height:1.25;margin:0;letter-spacing:-.2px;font-weight:650}
+  .sub{color:var(--mut);font-size:13px;max-width:900px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--mut);
+    border:1px solid var(--line2);background:rgba(15,23,42,.7);border-radius:999px;padding:4px 10px}
+  .chip b{color:var(--tx);font-weight:600}
+  .chip.ok{border-color:rgba(52,211,153,.45);color:#a7f3d0}
+  .chip.warn{border-color:rgba(251,191,36,.45);color:#fde68a}
+  .chip.bad{border-color:rgba(251,113,133,.45);color:#fecdd3}
+  section{margin-top:44px}
+  h2{font-size:15px;margin:0 0 4px;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
+  h2 .num{font-size:11px;color:var(--dim);border:1px solid var(--line2);border-radius:6px;padding:2px 7px;font-weight:500}
+  .lede{color:var(--mut);font-size:12.5px;margin:6px 0 18px;max-width:960px}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  @media (max-width:980px){.cards{grid-template-columns:repeat(2,1fr)}}
+  .card{background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(11,18,32,.95));
+    border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px;position:relative;overflow:hidden}
+  .card::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px}
+  .card.c-ok::after{background:var(--em)} .card.c-warn::after{background:var(--amb)} .card.c-bad::after{background:var(--rose)} .card.c-info::after{background:var(--cyan)}
+  .card .k{font-size:20px;font-weight:650;letter-spacing:-.3px;margin-bottom:2px}
+  .card .t{font-size:11px;color:var(--dim);margin-bottom:8px}
+  .card p{margin:0;font-size:12px;color:var(--mut)}
+  table{width:100%;border-collapse:collapse;font-size:12px;background:rgba(11,18,32,.6);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:rgba(15,23,42,.9);font-weight:600}
+  tr:last-child td{border-bottom:none}
+  td b{color:var(--tx);font-weight:600}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:5px;border:1px solid var(--line2);color:var(--mut);white-space:nowrap}
+  .tag.a{border-color:rgba(52,211,153,.5);color:#a7f3d0}
+  .tag.b{border-color:rgba(251,191,36,.5);color:#fde68a}
+  .tag.c{border-color:rgba(251,113,133,.5);color:#fecdd3}
+  .verdict{font-weight:600}
+  .y{color:#6ee7b7} .n{color:#fda4af} .m{color:#fcd34d}
+  .diagram{background:linear-gradient(180deg,#0b1220,#020617);border:1px solid var(--line);
+    border-radius:14px;padding:10px;overflow:auto;
+    width:calc(100vw - 48px);max-width:1400px;margin-left:50%;transform:translateX(-50%)}
+  .diagram svg{display:block;width:100%;height:auto;min-width:900px}
+  .note{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+  @media (max-width:980px){.note{grid-template-columns:1fr}}
+  .note div{background:rgba(15,23,42,.65);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .note h4{margin:0 0 8px;font-size:12px;display:flex;align-items:center;gap:8px}
+  .note ul{margin:0;padding-left:16px;color:var(--mut);font-size:11.5px}
+  .note li{margin:4px 0}
+  .warnbox{border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.06);border-radius:10px;
+    padding:14px 16px;font-size:12px;color:#fde68a;margin-top:16px}
+  .warnbox b{color:#fff7d6}
+  .links{columns:2;column-gap:28px;font-size:11.5px}
+  @media (max-width:760px){.links{columns:1}}
+  .links a{color:#7dd3fc;text-decoration:none;display:block;margin:5px 0;break-inside:avoid}
+  .links a:hover{text-decoration:underline}
+  footer{margin-top:48px;border-top:1px solid var(--line);padding-top:16px;color:var(--dim);font-size:11px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  code{background:rgba(148,163,184,.12);padding:1px 5px;border-radius:4px;font-size:11.5px;color:#e2e8f0;
+    overflow-wrap:anywhere;word-break:break-word}
+  .tablewrap{overflow-x:auto;border-radius:10px}
+  @media (max-width:760px){ table{font-size:11px} th,td{padding:9px 8px} .wrap{padding:28px 16px 56px} h1{font-size:22px} .diagram svg{min-width:760px} }
+  .flow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+  @media (max-width:980px){.flow{grid-template-columns:1fr}}
+  .flow .card .k{font-size:15px}
+  .pill{display:inline-block;font-size:10px;padding:1px 7px;border-radius:999px;margin-right:5px}
+  .p0{background:rgba(251,113,133,.15);color:#fecdd3;border:1px solid rgba(251,113,133,.4)}
+  .p1{background:rgba(251,191,36,.15);color:#fde68a;border:1px solid rgba(251,191,36,.4)}
+  .p2{background:rgba(52,211,153,.15);color:#a7f3d0;border:1px solid rgba(52,211,153,.4)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow"><span class="dot"></span>可行性调研 · 架构方案 · v1</div>
+  <h1>AI 额度 HUD：把各渠道额度放进状态栏，且随时可以彻底消失</h1>
+  <div class="sub">目标：Windows / macOS / iOS / Android 原生呈现 Codex、Claude、Gemini、WorkBuddy 等渠道的剩余额度；
+    常驻但不打扰，不需要时 0 占用。本文回答两件事：<b>这条路可信吗</b>、<b>系统怎么搭</b>。</div>
+  <div class="meta">
+    <span class="chip">调研日期 <b>2026-10-30</b></span>
+    <span class="chip ok">桌面端：已有两个 MIT 开源先例</span>
+    <span class="chip warn">移动端：无第三方状态栏</span>
+    <span class="chip bad">Gemini 旧接口 2026-06-18 已停服</span>
+    <span class="chip">本轮未用真实账号打通端点</span>
+  </div>
+</header>
+
+<section>
+  <h2><span class="num">00</span>先说结论</h2>
+  <p class="lede">四句话，按重要性排序。后面每一节都在给这四句话提供证据。</p>
+  <div class="cards">
+    <div class="card c-ok">
+      <div class="k">桌面端可行</div>
+      <div class="t">macOS / Windows</div>
+      <p>不是一个猜测：CodexBar（MIT，macOS 14+，已注册 110 个 provider）与 OpenTokenUsage（MIT，Windows 11）已经把"菜单栏 / 托盘显示额度"完整做出来了，端点和解析逻辑公开可查。</p>
+    </div>
+    <div class="card c-warn">
+      <div class="k">移动端形态不同</div>
+      <div class="t">iOS / Android</div>
+      <p>iOS 没有第三方状态栏，只能做小组件 + 灵动岛 + 控制中心；Android 能做真·常驻，但必须常驻前台服务通知。两者都做不到"桌面那种一像素常驻"。</p>
+    </div>
+    <div class="card c-bad">
+      <div class="k">渠道里有雷</div>
+      <div class="t">Gemini / WorkBuddy</div>
+      <p>Gemini 个人账号的额度接口已于 2026-06-18 停服，必须改走 Antigravity；WorkBuddy 虽无公开文档，但其<b>设备登录流已实测可用</b>（见用户故事规格第 07 节），不再属于"只能抓包"。</p>
+    </div>
+    <div class="card c-info">
+      <div class="k">风险不在技术</div>
+      <div class="t">在"非官方端点"</div>
+      <p>所有渠道都是反向工程出来的未公开接口，两个开源项目自己在文档里都写着"随时可能变"。所以架构的核心不是"多快拿到数据"，而是"某个渠道坏掉时，其余照常"。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">01</span>平台能力：哪些平台真能"常驻 + 完全隐藏"</h2>
+  <p class="lede">"状态栏"在不同系统上不是同一个东西。下表按"用户实际能看到的载体"逐平台核对，并标注系统硬限制。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th style="width:14%">平台</th><th style="width:26%">常驻载体</th><th style="width:22%">"完全隐藏"怎么做</th><th>系统硬限制（必须接受）</th><th style="width:9%">判断</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>macOS 14+</b></td>
+        <td>菜单栏 <code>NSStatusItem</code>；SWiftUI 的 <code>MenuBarExtra</code> 可做但需 AppKit 兜底</td>
+        <td>一键隐藏 / 只留图标 / 拖出可见区；可无 Dock 图标，纯后台驻留</td>
+        <td>macOS 26（Tahoe）起状态栏项由 Control Center 托管，并存在按 bundle id 的抑制/黑名单（CodexBar #3377、SketchyBar #789 均为真实案例）</td>
+        <td class="verdict y">高</td>
+      </tr>
+      <tr>
+        <td><b>Windows 11</b></td>
+        <td>通知区域托盘图标（<code>Shell_NotifyIcon</code>）+ 可选任务栏贴条（AppBar 覆盖层）</td>
+        <td>拖进托盘溢出区即隐藏；贴条可单独关；全局快捷键唤出面板</td>
+        <td>Windows 没有"状态栏"这个概念，贴条属实验性土办法；未签名安装包会触发 SmartScreen（OpenTokenUsage 实测需用户点"仍要运行"）</td>
+        <td class="verdict y">高</td>
+      </tr>
+      <tr>
+        <td><b>Android 13+</b></td>
+        <td>前台服务常驻通知（ongoing，不能滑掉）+ 快捷设置磁贴 + 桌面小组件</td>
+        <td>关闭监控 → 通知/磁贴/小组件同时消失；通知可折叠到最简一行</td>
+        <td>Android 13+ 需 <code>POST_NOTIFICATIONS</code>；Android 14+ 前台服务必须声明类型；国产 ROM 省电策略仍可能杀后台</td>
+        <td class="verdict m">中高</td>
+      </tr>
+      <tr>
+        <td><b>iOS 18+</b></td>
+        <td>主屏/锁屏小组件（WidgetKit）、灵动岛 Live Activity、控制中心控件（<code>ControlWidget</code>）</td>
+        <td>移除小组件 = 零打扰；控制中心控件平时完全不可见</td>
+        <td><b>没有任何第三方状态栏 API</b>。后台刷新由系统调度，不能保证准时；Live Activity 需要"进行中的活动"且有时长上限</td>
+        <td class="verdict m">中</td>
+      </tr>
+      <tr>
+        <td><b>Linux（可选）</b></td>
+        <td>Qt / StatusNotifier 托盘</td>
+        <td>隐藏托盘图标</td>
+        <td>各桌面环境实现不一；但有现成开源实现可参考</td>
+        <td class="verdict y">高</td>
+      </tr>
+    </tbody>
+  </table></div>
+  <div class="warnbox"><b>结论修正：</b>把"状态栏常驻"当成四个平台的同一件事，会在移动端撞墙。建议统一为产品语言——<b>"一瞥可见（Glanceable）"</b>：桌面用状态栏，Android 用常驻通知，iOS 用灵动岛/小组件/控制中心。三者共用同一套"L0 隐藏 / L1 徽标 / L2 面板"可见性模型。</div>
+</section>
+
+<section>
+  <h2><span class="num">02</span>渠道接入：每个渠道的真实数据源与断供风险</h2>
+  <p class="lede">下面每一条都指向可查的端点和凭据位置。<span class="tag a">A</span> = 官方文档，<span class="tag b">B</span> = 两个独立开源项目的 provider 文档，<span class="tag c">C</span> = 未验证/需抓包。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th style="width:12%">渠道</th><th style="width:34%">数据源与凭据</th><th style="width:12%">官方程度</th><th style="width:12%">断供风险</th><th>落地判断</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Claude 订阅</b><br><span class="tag b">B</span></td>
+        <td><code>GET api.anthropic.com/api/oauth/usage</code>，头 <code>Authorization: Bearer</code> + <code>anthropic-beta: oauth-2025-04-20</code>；返回 <code>five_hour</code> / <code>seven_day</code> 的 utilization + resets_at，以及 <code>extra_usage</code> 超额 credits。<br>凭据：macOS Keychain <code>Claude Code-credentials</code>，兜底 <code>~/.claude/.credentials.json</code>；Windows 走文件。</td>
+        <td>未公开</td>
+        <td class="m">中</td>
+        <td>可做。但<b>只读、不主动刷新 token</b>：Claude Code 的 refresh token 是一次性的，抢刷新会把用户踢下线（社区 issue #1417）。官方 statusLine 也会回传 <code>rate_limits</code>，可作第二通道，但 Team/部分计划缺失（#63659、#84995）。</td>
+      </tr>
+      <tr>
+        <td><b>Codex<br>(ChatGPT 订阅)</b><br><span class="tag b">B</span></td>
+        <td><code>GET chatgpt.com/backend-api/wham/usage</code>，头 <code>Authorization: Bearer</code> + <code>ChatGPT-Account-Id</code>；返回 5 小时窗口 / 7 天窗口、credits 余额、可用重置次数（<code>limit_window_seconds</code> 18000 / 604800）。<br>凭据：<code>~/.codex/auth.json</code>，或系统 keyring 条目 <code>Codex Auth</code>。</td>
+        <td>半官方</td>
+        <td class="y">中低</td>
+        <td>可做。另有官方文档化的 <code>codex app-server</code>（文档明确可 "inspect ChatGPT rate limits"），作为更稳的第二通道。轮询必须节流（openai/codex #10869 曾因高频轮询改动）。</td>
+      </tr>
+      <tr>
+        <td><b>Gemini</b><br><span class="tag a">A</span><span class="tag b">B</span></td>
+        <td>旧路 <code>cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota</code> <b>已对个人 / AI Pro / Ultra 停服</b>（Google 官方公告：2026-06-18 起不再为消费级账号提供 Gemini CLI 的 Google 登录，返回 403 <code>SUBSCRIPTION_REQUIRED</code>）。<br>现路：① Antigravity <code>agy -p /usage --output-format json</code>（1.1.11+ 支持非交互用量报告）② <code>gemini.google.com/usage</code> 的 GraphQL（带 cookie，签名会漂移）。</td>
+        <td>部分官方</td>
+        <td class="n">高</td>
+        <td><b>不能按旧方案设计</b>。要么接 Antigravity（推荐，CLI 有 JSON 输出），要么走网页 cookie（脆弱）。企业 Standard/Enterprise 席位仍可用旧路。</td>
+      </tr>
+      <tr>
+        <td><b>WorkBuddy<br>(腾讯)</b><br><span class="tag c">C</span></td>
+        <td>无公开文档，但已有可用端点：<code>POST /v2/plugin/auth/state</code>（发起登录，返回 state + authUrl，<b>实测 200</b>）→ <code>/v2/plugin/auth/token?state=…</code> 换 token；<code>POST /billing/meter/get-user-resource-summary</code> 读积分（<b>实测无凭据 401</b>，端点存在）；<code>/billing/meter/get-user-request-usage</code> 读用量。凭据来自官方登录页，不是抓包。</td>
+        <td>未公开</td>
+        <td class="m">中</td>
+        <td><b>可进 P0</b>。设备登录流与 Claude/Codex 体验一致，用户不用粘贴任何东西。两个已知坑：国内版 <code>workbuddy.cn</code> 与国际版 <code>workbuddy.ai</code> 是两套账号体系、端点不同，混用会拿到 401 HTML。</td>
+      </tr>
+      <tr>
+        <td><b>官方 API 账号</b><br><span class="tag a">A</span></td>
+        <td>OpenAI / Anthropic 的 Admin 用量与成本报表接口（需企业级 key），CodexBar 也用它做花费面板。</td>
+        <td>官方</td>
+        <td class="y">低</td>
+        <td>稳定但门槛高（需组织管理权限）。可作为"付费用户也装一个"的加分项，不适合作为首发卖点。</td>
+      </tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="num">03</span>架构：五层 + 一条信任边界</h2>
+  <p class="lede">设计原则只有一条：<b>凭据和额度快照不出本机</b>；所有跨平台差异压缩到薄壳里，核心只产出一种数据。</p>
+  <div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 830" font-family="JetBrains Mono, ui-monospace, 'Noto Sans SC', 'PingFang SC', system-ui, sans-serif">
+<defs>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+  </pattern>
+  <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+  </marker>
+  <marker id="arwR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb7185"/>
+  </marker>
+  <marker id="arwA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#fbbf24"/>
+  </marker>
+</defs>
+<rect width="1420" height="830" fill="#020617"/>
+<rect width="1420" height="830" fill="url(#grid)"/>
+<rect x="26" y="44" width="1110" height="560" rx="14" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4" opacity="0.75"/>
+<text x="40" y="40" font-size="9" fill="#fbbf24" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0.4">本机信任边界 · 凭据与额度快照不出设备</text>
+<text x="40" y="66" font-size="9.5" fill="#64748b" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0.3">① 凭据与端点（优先复用用户已在用的登录态）</text>
+<text x="40" y="216" font-size="9.5" fill="#64748b" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0.3">② Provider 适配器 · 每渠道独立插件，可单独失效降级</text>
+<text x="40" y="348" font-size="9.5" fill="#64748b" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0.3">③ Quota Engine · 跨平台同构核心（Windows / macOS / Android / iOS 共用）</text>
+<rect x="40" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="40" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="40" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="52" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Claude 订阅</text><text x="52" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">OAuth Bearer token</text><text x="52" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Keychain · creds.json</text><circle cx="228" cy="91" r="3.6" fill="#fbbf24"/>
+<rect x="260" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="260" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="260" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="272" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Codex（ChatGPT）</text><text x="272" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">OAuth Bearer token</text><text x="272" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">auth.json · Keyring</text><circle cx="448" cy="91" r="3.6" fill="#fbbf24"/>
+<rect x="480" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="480" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="480" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="492" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Gemini（已改道）</text><text x="492" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">agy CLI · 本机 HTTPS</text><text x="492" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">或 web cookie</text><circle cx="668" cy="91" r="3.6" fill="#fb7185"/>
+<rect x="700" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="700" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="700" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="712" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">官方 API Key</text><text x="712" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Admin usage / costs</text><text x="712" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">OpenAI · Anthropic</text><circle cx="888" cy="91" r="3.6" fill="#34d399"/>
+<rect x="920" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="920" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="920" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="932" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">WorkBuddy（腾讯）</text><text x="932" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">无公开接口</text><text x="932" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">待抓包定位端点</text><circle cx="1108" cy="91" r="3.6" fill="#fb7185"/>
+<rect x="40" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="40" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="40" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="52" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Claude 适配器</text><text x="52" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">只读 usage 端点</text><text x="52" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">禁主动刷新 token</text><circle cx="228" cy="241" r="3.6" fill="#fbbf24"/>
+<rect x="260" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="260" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="260" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="272" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Codex 适配器</text><text x="272" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">wham/usage 或 app-server</text><text x="272" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">轮询节流 · 429 退避</text><circle cx="448" cy="241" r="3.6" fill="#fbbf24"/>
+<rect x="480" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="480" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="480" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="492" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Antigravity 适配器</text><text x="492" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">agy -p /usage --json</text><text x="492" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">需 1.1.11+</text><circle cx="668" cy="241" r="3.6" fill="#fbbf24"/>
+<rect x="700" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="700" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="700" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="712" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">API 适配器</text><text x="712" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">官方用量 / 成本报表</text><text x="712" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">稳定但需企业权限</text><circle cx="888" cy="241" r="3.6" fill="#34d399"/>
+<rect x="920" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="920" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="920" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="932" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">WorkBuddy 适配器</text><text x="932" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">抓包 → cookie 复用</text><text x="932" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">随时可能失效</text><circle cx="1108" cy="241" r="3.6" fill="#fb7185"/>
+<rect x="40" y="356" width="1080" height="190" rx="10" fill="#0f172a"/>
+<rect x="40" y="356" width="1080" height="190" rx="10" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+<rect x="56" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="56" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="66" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">调度与退避</text>
+<text x="66" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">2 / 5 / 10 / 15 分钟</text>
+<text x="66" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">自适应 + 429 门</text>
+<rect x="234" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="234" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="244" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">统一额度模型</text>
+<text x="244" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">window · reset_at</text>
+<text x="244" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">credits · 置信度</text>
+<rect x="412" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="412" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="422" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">历史与燃尽</text>
+<text x="422" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">本地 SQLite</text>
+<text x="422" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">只存数值，不存原文</text>
+<rect x="590" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="590" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="600" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Pace 判定</text>
+<text x="600" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">按当前速度</text>
+<text x="600" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">是否会提前耗尽</text>
+<rect x="768" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="768" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="778" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">本机只读 API</text>
+<text x="778" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">127.0.0.1:6736</text>
+<text x="778" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">给脚本 / 其它 App</text>
+<rect x="946" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="946" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="956" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Secret Store</text>
+<text x="956" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Keychain · DPAPI</text>
+<text x="956" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Keystore · libsecret</text>
+<line x1="56" y1="466" x2="1104" y2="466" stroke="#34d399" stroke-width="0.6" opacity="0.45"/>
+<text x="56" y="484" font-size="8.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">统一输出 QuotaSnapshot{provider, plan, windows[], credits, status, source, fetched_at}</text>
+<text x="56" y="502" font-size="8.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">status ∈ ok · stale · auth_expired · rate_limited · deprecated · unsupported</text>
+<text x="56" y="526" font-size="8.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">同构 payload：5 个平台壳复用同一份数据 + 同一套 L0/L1/L2 可见性状态</text>
+<text x="1104" y="484" font-size="8.4" fill="#34d399" font-weight="400" text-anchor="end" opacity="1.0" letter-spacing="0">降级：单渠道失败 = 该卡片显示「数据过期 / 需重新登录」</text>
+<text x="1104" y="502" font-size="8.4" fill="#34d399" font-weight="400" text-anchor="end" opacity="1.0" letter-spacing="0">不阻塞其它渠道 · 不重试雪崩 · 不隐藏错误</text>
+<text x="1104" y="526" font-size="8.4" fill="#34d399" font-weight="400" text-anchor="end" opacity="1.0" letter-spacing="0">过期数据必须标注 fetched_at，绝不冒充实时</text>
+<rect x="40" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="40" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="40" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="52" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">macOS 14+</text><text x="52" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">菜单栏 NSStatusItem</text><text x="52" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">无 Dock 图标 · 26 有坑</text><circle cx="228" cy="655" r="3.6" fill="#34d399"/>
+<rect x="52" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="67.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="86" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="101.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="120" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="135.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<rect x="260" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="260" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="260" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="272" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Windows 11</text><text x="272" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">托盘 Shell_NotifyIcon</text><text x="272" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">任务栏贴条（实验性）</text><circle cx="448" cy="655" r="3.6" fill="#34d399"/>
+<rect x="272" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="287.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="306" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="321.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="340" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="355.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<rect x="480" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="480" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="480" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="492" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Linux（可选）</text><text x="492" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Qt / StatusNotifier</text><text x="492" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">有现成实现可参考</text><circle cx="668" cy="655" r="3.6" fill="#34d399"/>
+<rect x="492" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="507.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="526" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="541.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="560" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="575.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<rect x="700" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="700" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="700" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="712" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Android 13+</text><text x="712" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">常驻通知 + QS 磁贴</text><text x="712" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">需通知权限 + FGS 类型</text><circle cx="888" cy="655" r="3.6" fill="#fbbf24"/>
+<rect x="712" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="727.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="746" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="761.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="780" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="795.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<rect x="920" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="920" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="920" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="932" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">iOS 18+</text><text x="932" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">小组件 · 灵动岛 · 控制中心</text><text x="932" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">无第三方状态栏</text><circle cx="1108" cy="655" r="3.6" fill="#fbbf24"/>
+<rect x="932" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="947.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="966" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="981.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="1000" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="1015.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<line x1="140.0" y1="180" x2="140.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="140.0" y1="322" x2="140.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="140.0" y1="546" x2="140.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<line x1="360.0" y1="180" x2="360.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="360.0" y1="322" x2="360.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="360.0" y1="546" x2="360.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<line x1="580.0" y1="180" x2="580.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="580.0" y1="322" x2="580.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="580.0" y1="546" x2="580.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<line x1="800.0" y1="180" x2="800.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="800.0" y1="322" x2="800.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="800.0" y1="546" x2="800.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<line x1="1020.0" y1="180" x2="1020.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="1020.0" y1="322" x2="1020.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="1020.0" y1="546" x2="1020.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<text x="680" y="596" font-size="8" fill="#fbbf24" font-weight="400" text-anchor="middle" opacity="1.0" letter-spacing="0">快照推送（同构 payload）</text>
+<rect x="1160" y="226" width="236" height="150" rx="10" fill="rgba(136,19,55,0.30)" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4"/>
+<text x="1174" y="250" font-size="10.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">可选：同步中继</text>
+<text x="1174" y="268" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">仅移动端需要</text>
+<text x="1174" y="288" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">首选取舍：桌面为 Hub</text>
+<text x="1174" y="302" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">（局域网 / 蓝牙直连）</text>
+<text x="1174" y="322" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">备选：E2E 加密中继</text>
+<text x="1174" y="336" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">只同步数值，不同步 token</text>
+<text x="1174" y="360" font-size="8" fill="#fb7185" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">红线：明文 refresh token 不上云</text>
+<rect x="1160" y="394" width="236" height="152" rx="10" fill="rgba(136,19,55,0.30)" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4"/>
+<text x="1174" y="418" font-size="10.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">合规与隐私红线</text>
+<text x="1174" y="440" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">· 只读：不代跑推理、不转发流量</text>
+<text x="1174" y="458" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">· 不做账号池、不共享凭据</text>
+<text x="1174" y="476" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">· 可离线：无网也有最后一次快照</text>
+<text x="1174" y="494" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">· 可审计：开源 + 本地日志</text>
+<text x="1174" y="528" font-size="7.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">ToS 灰色地带：按「用户自己的账号 + 只读展示」设计</text>
+<path d="M 1120 470 L 1160 300" fill="none" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4" marker-end="url(#arwR)"/>
+<path d="M 1278 546 L 1278 620 L 800 620 L 800 636" fill="none" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4" marker-end="url(#arwR)"/>
+<path d="M 1010 620 L 1010 636" fill="none" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4" marker-end="url(#arwR)"/>
+<text x="1168" y="596" font-size="7.8" fill="#fb7185" font-weight="500" text-anchor="start" opacity="1.0" letter-spacing="0">移动端经同步中继读取快照</text>
+<text x="1168" y="610" font-size="7.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">（不上传 token，只上传数值）</text>
+<text x="40" y="792" font-size="9.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">图例</text>
+<line x1="80" y1="788" x2="116" y2="788" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<text x="122" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">数据读取（只读）</text>
+<line x1="270" y1="788" x2="306" y2="788" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4"/>
+<text x="312" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">可选 / 降级路径</text>
+<circle cx="470" cy="785" r="4" fill="#34d399"/>
+<text x="480" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">官方或文档化</text>
+<circle cx="635" cy="785" r="4" fill="#fbbf24"/>
+<text x="645" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">未公开但已长期稳定</text>
+<circle cx="800" cy="785" r="4" fill="#fb7185"/>
+<text x="810" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">高风险 / 已停服</text>
+<rect x="980" y="779" width="14" height="14" rx="3" fill="none" stroke="#fbbf24" stroke-dasharray="4,3"/>
+<text x="1000" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">信任边界</text>
+<text x="1120" y="792" font-size="8" fill="#fbbf24" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">L0 完全隐藏 · L1 徽标 · L2 展开面板</text>
+</svg>
+  </div>
+  <div class="note">
+    <div>
+      <h4><span style="color:#22d3ee">■</span> 为什么把适配器独立成插件</h4>
+      <ul>
+        <li>五个渠道是五种完全不同的鉴权与解析逻辑，生命周期完全不同</li>
+        <li>某一渠道被上游改接口时，只需停用该插件，不影响其它卡片</li>
+        <li>新增渠道（Cursor、Copilot、Antigravity）不改核心</li>
+      </ul>
+    </div>
+    <div>
+      <h4><span style="color:#34d399">■</span> 为什么核心要跨平台同构</h4>
+      <ul>
+        <li>额度计算、退避、Pace 判定只有一份代码，避免五个平台五种口径</li>
+        <li>同一份 <code>QuotaSnapshot</code> 喂给托盘、通知、小组件</li>
+        <li>本地只读 API（<code>127.0.0.1</code>）让脚本/其它 App 也能复用</li>
+      </ul>
+    </div>
+    <div>
+      <h4><span style="color:#fb7185">■</span> 移动端的硬约束</h4>
+      <ul>
+        <li>手机上没有桌面的 CLI 登录态，拿不到同一份凭据</li>
+        <li>所以只有两条路：桌面作 Hub 局域网同步，或 E2E 加密中继</li>
+        <li>红线：明文 refresh token 绝不上云，只同步数值</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">04</span>「常驻但不打扰」怎么写进规格</h2>
+  <p class="lede">这是需求里最容易被做成形容词的部分。把它变成三档状态 + 四条触发规则，验收就能客观核对。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th style="width:12%">可见性</th><th style="width:24%">桌面形态</th><th style="width:22%">Android</th><th>iOS</th></tr></thead>
+    <tbody>
+      <tr><td><b>L0 隐藏</b></td><td>托盘/菜单栏无图标，进程仍活在后台；快捷键或 Spotlight 可唤起</td><td>前台服务停止，通知消失</td><td>无小组件、无 Live Activity</td></tr>
+      <tr><td><b>L1 徽标</b></td><td>单图标 + 一个数字（最紧张的那条额度），hover 出摘要</td><td>通知折叠为一行：<code>Claude 82% · 2h13m 复位</code></td><td>灵动岛紧凑视图 / 锁屏一行</td></tr>
+      <tr><td><b>L2 面板</b></td><td>点开：各渠道窗口 + 复位倒计时 + 超额积分 + 状态徽标</td><td>展开通知或点磁贴</td><td>小组件中号/大号，或控制中心控件展开</td></tr>
+    </tbody>
+  </table></div>
+  <div class="flow">
+    <div class="card c-warn"><div class="k">规则 1 · 越线才出声</div><p style="margin-top:6px">用量 ≥ 80%，或按当前消耗速度会在复位前耗尽 → 自动从 L0 升到 L1 并弹一次通知。其余时间保持用户设定的档位。</p></div>
+    <div class="card c-warn"><div class="k">规则 2 · 专注模式闭嘴</div><p style="margin-top:6px">全屏应用 / 勿扰 / 专注模式期间不弹任何通知，只更新数字；退出后补一条汇总，不逐条补。</p></div>
+    <div class="card c-info"><div class="k">规则 3 · 复位前提醒</div><p style="margin-top:6px">复位前 30 分钟提示一次"额度即将重置，可放心开长任务"。这是用户真正的决策点。</p></div>
+  </div>
+  <div class="flow" style="margin-top:12px">
+    <div class="card c-info"><div class="k">规则 4 · 过期必须自曝</div><p style="margin-top:6px">数据超过 3 个轮询周期未更新 → 卡片显示"12 分钟前"并降低不透明度，绝不拿旧数字冒充实时，也不静默归零。</p></div>
+    <div class="card c-ok"><div class="k">验收方式</div><p style="margin-top:6px">用可脚本化的断言代替肉眼：分辨率/DPI、深色与浅色、L0 时进程 CPU 占用、通知是否出现在勿扰、过期标注是否存在。</p></div>
+    <div class="card c-ok"><div class="k">冷启动预算</div><p style="margin-top:6px">首屏从进程启动到出数字 ≤ 1.5s（读缓存先显示，再刷新）；空状态 ≤ 200ms 出骨架。</p></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">05</span>风险登记册</h2>
+  <p class="lede">按"会不会发生 × 发生了能不能兜住"排序。前两条是这个项目真正的生死线。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th style="width:24%">风险</th><th style="width:10%">概率</th><th style="width:30%">后果</th><th>缓解</th></tr></thead>
+    <tbody>
+      <tr><td><b>上游改接口 / 下线</b></td><td class="n">高</td><td>某卡片永久失效，用户以为是自己额度用完了</td><td>每渠道独立熔断；卡片显式区分"读取失败/需重新登录/已下线"，并提供"上报"入口；端点集中在一个 registry 文件里便于热修</td></tr>
+      <tr><td><b>凭据被抢刷新导致登出</b></td><td class="m">中</td><td>用户被踢出 Claude Code / Codex，信任直接崩</td><td>只读优先：token 未过期就不刷新；只有 401 才刷新；刷新前重新读一次磁盘，若 CLI 已续期则直接用它的</td></tr>
+      <tr><td><b>轮询过频被限流 / 封号</b></td><td class="m">中</td><td>429 甚至风控</td><td>2/5/10/15 分钟自适应退避 + 严格遵守 Retry-After；重置类接口每小时最多 1 次</td></tr>
+      <tr><td><b>平台层被限制</b></td><td class="m">中</td><td>macOS 26 图标不显示；Windows SmartScreen 拦截；国产 ROM 杀后台</td><td>AppKit 兜底 + 签名（Windows 需 EV/OV 证书）；Android 引导用户加白名单；上架前先在真机矩阵验证</td></tr>
+      <tr><td><b>ToS / 商店审核</b></td><td class="m">中</td><td>被拒审或收到警告</td><td>只读展示自己的账号；不代跑推理、不做账号池、不共享凭据；移动端用 App 内 WebView 登录拿自己的 cookie，绝不让用户粘贴 token</td></tr>
+      <tr><td><b>隐私质疑</b></td><td class="y">低</td><td>用户不敢装</td><td>默认零遥测、数据本地、开源可审计——两个先例项目都是这么立足的</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="num">06</span>技术选型：两条路，成本差一倍</h2>
+  <div class="cards" style="grid-template-columns:repeat(2,1fr)">
+    <div class="card c-info">
+      <div class="k">A · 原生 ×5</div>
+      <div class="t">Swift / SwiftUI · C# WinUI3 · Kotlin Compose · SwiftUI(iOS)</div>
+      <p>体验最好，状态栏/托盘/通知/小组件都是第一等公民。代价是额度逻辑写 3~4 遍，渠道一改接口要改多处；1 人做不完。</p>
+      <p style="margin-top:8px;color:#7dd3fc">适合：先把 macOS + Windows 做到极致，移动端后置。</p>
+    </div>
+    <div class="card c-ok">
+      <div class="k">B · 共享核心 + 原生薄壳（推荐）</div>
+      <div class="t">Rust 核心（HTTP + 解析 + 缓存 + 退避）· Tauri 桌面壳 · Kotlin/Swift 移动壳</div>
+      <p>额度逻辑只写一次，五个壳只负责"把数字画出来"。Tauri 托盘在桌面端成熟；移动端小组件/灵动岛本来就必须原生写，正好只写壳。</p>
+      <p style="margin-top:8px;color:#6ee7b7">适合：想一次覆盖多平台、且接受 Windows 体积略大（~10MB）。</p>
+    </div>
+  </div>
+  <div class="warnbox" style="border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.06);color:#a5f3fc">
+    <b>建议：</b>选 B。理由不是"技术更优雅"，而是这个项目的维护成本 90% 花在<b>跟进上游接口变化</b>——把这件事收敛到一个 Rust crate 里，等于把长期成本砍掉 3/4。
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">07</span>分期路线</h2>
+  <div class="cards" style="grid-template-columns:repeat(3,1fr)">
+    <div class="card c-bad">
+      <div class="k"><span class="pill p0">P0</span>2–3 周</div>
+      <div class="t">验证"能不能立住"</div>
+      <p>macOS 菜单栏 + Windows 托盘；Claude + Codex 两渠道；L0/L1/L2 三档 + 越线提醒；过期标注。<br><br>出口标准：装在两台真机上，连续 3 天不崩、不断供误报。</p>
+    </div>
+    <div class="card c-warn">
+      <div class="k"><span class="pill p1">P1</span>+3 周</div>
+      <div class="t">补齐移动端"一瞥"</div>
+      <p>Android 常驻通知 + QS 磁贴；iOS 小组件 + 灵动岛 + 控制中心控件；桌面作 Hub 的局域网同步。<br><br>出口标准：手机与桌面数字一致（误差 ≤1 个轮询周期）。</p>
+    </div>
+    <div class="card c-ok">
+      <div class="k"><span class="pill p2">P2</span>+2 周起</div>
+      <div class="t">扩渠道与打磨</div>
+      <p>Antigravity/Gemini；WorkBuddy 抓包验证；Cursor/Copilot；历史燃尽图；开源 + 签名分发。</p>
+    </div>
+  </div>
+
+  <h3 style="font-size:12.5px;color:var(--mut);margin:26px 0 10px;font-weight:600;letter-spacing:.04em">工作量与成本估算（按方案 B，1 名熟悉桌面的工程师）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th style="width:34%">工作项</th><th style="width:12%">人周</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>核心（端点 + 解析 + 退避 + 缓存）</td><td>2.0</td><td>一次性投入，后续所有平台复用；也是唯一需要持续维护的部分</td></tr>
+      <tr><td>macOS 壳（菜单栏 + 面板 + 通知）</td><td>1.5</td><td>AppKit 兜底 + 26 兼容是本项主要风险点</td></tr>
+      <tr><td>Windows 壳（托盘 + 面板 + 开机自启）</td><td>1.5</td><td>含 SmartScreen 签名与安装包</td></tr>
+      <tr><td>Android 壳（前台服务 + 磁贴 + 通知）</td><td>1.0</td><td>含国产 ROM 白名单引导</td></tr>
+      <tr><td>iOS 壳（小组件 + 灵动岛 + 控制中心）</td><td>1.5</td><td>三套 SwiftUI 扩展，无法复用桌面代码</td></tr>
+      <tr><td>桌面 Hub 同步（局域网配对）</td><td>1.0</td><td>P1 才需要</td></tr>
+      <tr><td>签名 / 分发 / 自动更新</td><td>1.0</td><td>Apple 99 USD/年，Windows OV 证书约 300–500 USD/年</td></tr>
+      <tr><td><b>合计（四平台）</b></td><td><b>≈ 9.5</b></td><td>约 2 个月单人；只做 macOS+Windows 约 <b>5 人周</b></td></tr>
+      <tr><td><b>长期维护</b></td><td><b>0.5–1 / 月</b></td><td>跟进上游接口变化；这是真正的持续成本，也是为什么核心要收敛成一份</td></tr>
+    </tbody>
+  </table></div>
+  <p class="lede" style="margin-top:10px;font-size:11.5px">说明：人周是按"端点已打通、UI 一次过"估的乐观值；实际首个版本通常上浮 30–50%，主要吃在平台兼容（macOS 26 状态栏、Windows 签名、ROM 后台限制）与上游接口文档缺失上。</p>
+</section>
+
+<section>
+  <h2><span class="num">08</span>本轮验证边界（必须诚实说明）</h2>
+  <div class="warnbox">
+    <b>已核实：</b>平台能力（Apple / Microsoft / Google 官方文档）、Gemini 停服公告、两个开源项目的端点文档与凭据位置、macOS 26 状态栏问题的一手 issue。<br><br>
+    <b>未核实：</b>没有用任何真实账号打通端点——本机出网受限（<code>api.anthropic.com</code> 探测返回 403，<code>chatgpt.com</code> / <code>cloudcode-pa</code> / <code>gemini.google.com</code> 均连接失败），也没有安装 Claude Code / Codex CLI 的登录态。<br><br>
+    <b>因此：</b>P0 的第一件事不是写 UI，而是在一台已登录的 Mac 和 Windows 上跑一遍"四端点健康检查"（Claude usage、Codex wham、Antigravity agy、WorkBuddy 抓包），把返回体固化成 fixture。这一步 1 天能完成，但它决定后面所有排期。
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">09</span>需要你拍板的三件事</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th style="width:26%">决策</th><th style="width:37%">选项</th><th>我的建议与理由</th></tr></thead>
+    <tbody>
+      <tr><td><b>首发平台</b></td><td>A. macOS + Windows 先做<br>B. Windows 先做（用户基数大）<br>C. 四平台一起</td><td>选 A。两个桌面平台能复用同一套端点知识与 UI 规格，且已有开源先例可对齐；四平台一起会把移动端平台限制的坑一次性全踩一遍。</td></tr>
+      <tr><td><b>移动端数据来源</b></td><td>A. 桌面 Hub 局域网同步（无服务器）<br>B. E2E 加密中继<br>C. 移动端 App 内 WebView 登录</td><td>选 A 起步（零运维、零合规风险）；C 作为 iOS 无桌面用户的兜底；B 留到有企业客户再说。</td></tr>
+      <tr><td><b>WorkBuddy 优先级</b></td><td>A. P0（已定）<br>B. P1 随移动端<br>C. P2</td><td><b>已拍板：P0 必须有。</b>技术上可行——授权走官方登录页 + 轮询换 token，额度走 <code>billing/meter</code> 系列接口，本机已实测端点存在。剩余风险是端点未公开、随时可改，按"单渠道可独立熔断"处理即可。</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="num">10</span>证据来源</h2>
+  <div class="links">
+    <a href="https://github.com/steipete/CodexBar">CodexBar（MIT，macOS 菜单栏，110 providers）</a>
+    <a href="https://github.com/steipete/CodexBar/blob/main/docs/providers.md">CodexBar · 各 provider 数据源总览</a>
+    <a href="https://github.com/steipete/CodexBar/blob/main/docs/gemini.md">CodexBar · Gemini 迁移与端点</a>
+    <a href="https://github.com/steipete/CodexBar/blob/main/docs/antigravity.md">CodexBar · Antigravity 用量来源</a>
+    <a href="https://github.com/steipete/CodexBar/issues/3377">macOS 26 状态栏项不显示（真实 issue）</a>
+    <a href="https://github.com/FelixKratz/SketchyBar/pull/789">macOS 26 状态栏项归属 Control Center</a>
+    <a href="https://github.com/PowerUserZ/OpenTokenUsage">OpenTokenUsage（MIT，Windows 11 托盘）</a>
+    <a href="https://github.com/PowerUserZ/OpenTokenUsage/blob/main/docs/providers/codex.md">OpenTokenUsage · Codex wham/usage 返回结构</a>
+    <a href="https://github.com/PowerUserZ/OpenTokenUsage/blob/main/docs/providers/claude.md">OpenTokenUsage · Claude oauth/usage 返回结构</a>
+    <a href="https://developers.google.com/gemini-code-assist/docs/deprecations/code-assist-individuals">Google：Gemini Code Assist 消费级账号停服公告</a>
+    <a href="https://developers.openai.com/codex/app-server">OpenAI：Codex App Server（含 rate limits 读取）</a>
+    <a href="https://docs.claude.com/en/docs/claude-code/statusline">Claude Code statusLine 文档</a>
+    <a href="https://www.workbuddy.cn/docs/workbuddy/Usage">WorkBuddy：查看积分使用情况（唯一口径）</a>
+    <a href="https://learn.microsoft.com/en-us/windows/win32/shell/notification-area">Windows 通知区域与 Shell_NotifyIcon</a>
+    <a href="https://learn.microsoft.com/en-us/windows/apps/develop/widgets/widget-providers">Windows 11 Widget Provider</a>
+    <a href="https://developer.android.com/develop/background-work/services/fgs">Android 前台服务与常驻通知</a>
+    <a href="https://developer.apple.com/documentation/swiftui/controlwidget">Apple ControlWidget（iOS 18+）</a>
+    <a href="https://developer.apple.com/videos/play/wwdc2026/223">Apple：Live Activities essentials</a>
+  </div>
+</section>
+
+<footer>
+  <span>AI 额度 HUD · 调研与架构 v1 · 2026-10-30</span>
+  <span>证据等级：平台=官方文档 · 端点=开源项目文档 + 官方停服公告 · 实测=未进行</span>
+</footer>
+
+</div>
+</body>
+</html>

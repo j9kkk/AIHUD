@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 830" width="1420" height="830" font-family="JetBrains Mono, ui-monospace, 'Noto Sans SC', 'PingFang SC', system-ui, sans-serif">
+<defs>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+  </pattern>
+  <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+  </marker>
+  <marker id="arwR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb7185"/>
+  </marker>
+  <marker id="arwA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#fbbf24"/>
+  </marker>
+</defs>
+<rect width="1420" height="830" fill="#020617"/>
+<rect width="1420" height="830" fill="url(#grid)"/>
+<rect x="26" y="44" width="1110" height="560" rx="14" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4" opacity="0.75"/>
+<text x="40" y="40" font-size="9" fill="#fbbf24" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0.4">本机信任边界 · 凭据与额度快照不出设备</text>
+<text x="40" y="66" font-size="9.5" fill="#64748b" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0.3">① 凭据与端点（优先复用用户已在用的登录态）</text>
+<text x="40" y="216" font-size="9.5" fill="#64748b" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0.3">② Provider 适配器 · 每渠道独立插件，可单独失效降级</text>
+<text x="40" y="348" font-size="9.5" fill="#64748b" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0.3">③ Quota Engine · 跨平台同构核心（Windows / macOS / Android / iOS 共用）</text>
+<rect x="40" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="40" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="40" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="52" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Claude 订阅</text><text x="52" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">OAuth Bearer token</text><text x="52" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Keychain · creds.json</text><circle cx="228" cy="91" r="3.6" fill="#fbbf24"/>
+<rect x="260" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="260" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="260" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="272" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Codex（ChatGPT）</text><text x="272" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">OAuth Bearer token</text><text x="272" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">auth.json · Keyring</text><circle cx="448" cy="91" r="3.6" fill="#fbbf24"/>
+<rect x="480" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="480" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="480" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="492" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Gemini（已改道）</text><text x="492" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">agy CLI · 本机 HTTPS</text><text x="492" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">或 web cookie</text><circle cx="668" cy="91" r="3.6" fill="#fb7185"/>
+<rect x="700" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="700" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="700" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="712" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">官方 API Key</text><text x="712" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Admin usage / costs</text><text x="712" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">OpenAI · Anthropic</text><circle cx="888" cy="91" r="3.6" fill="#34d399"/>
+<rect x="920" y="76" width="200" height="104" rx="8" fill="#0f172a"/><rect x="920" y="76" width="200" height="104" rx="8" fill="rgba(148,163,184,0.14)" stroke="#94a3b8" stroke-width="1.4"/><rect x="920" y="76" width="3" height="104" rx="1.5" fill="#94a3b8" opacity="0.9"/><text x="932" y="97" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">WorkBuddy（腾讯）</text><text x="932" y="112" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">无公开接口</text><text x="932" y="125.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">待抓包定位端点</text><circle cx="1108" cy="91" r="3.6" fill="#fb7185"/>
+<rect x="40" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="40" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="40" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="52" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Claude 适配器</text><text x="52" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">只读 usage 端点</text><text x="52" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">禁主动刷新 token</text><circle cx="228" cy="241" r="3.6" fill="#fbbf24"/>
+<rect x="260" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="260" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="260" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="272" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Codex 适配器</text><text x="272" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">wham/usage 或 app-server</text><text x="272" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">轮询节流 · 429 退避</text><circle cx="448" cy="241" r="3.6" fill="#fbbf24"/>
+<rect x="480" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="480" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="480" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="492" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Antigravity 适配器</text><text x="492" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">agy -p /usage --json</text><text x="492" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">需 1.1.11+</text><circle cx="668" cy="241" r="3.6" fill="#fbbf24"/>
+<rect x="700" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="700" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="700" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="712" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">API 适配器</text><text x="712" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">官方用量 / 成本报表</text><text x="712" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">稳定但需企业权限</text><circle cx="888" cy="241" r="3.6" fill="#34d399"/>
+<rect x="920" y="226" width="200" height="96" rx="8" fill="#0f172a"/><rect x="920" y="226" width="200" height="96" rx="8" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="1.4"/><rect x="920" y="226" width="3" height="96" rx="1.5" fill="#22d3ee" opacity="0.9"/><text x="932" y="247" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">WorkBuddy 适配器</text><text x="932" y="262" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">抓包 → cookie 复用</text><text x="932" y="275.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">随时可能失效</text><circle cx="1108" cy="241" r="3.6" fill="#fb7185"/>
+<rect x="40" y="356" width="1080" height="190" rx="10" fill="#0f172a"/>
+<rect x="40" y="356" width="1080" height="190" rx="10" fill="rgba(6,78,59,0.45)" stroke="#34d399" stroke-width="1.6"/>
+<rect x="56" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="56" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="66" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">调度与退避</text>
+<text x="66" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">2 / 5 / 10 / 15 分钟</text>
+<text x="66" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">自适应 + 429 门</text>
+<rect x="234" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="234" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="244" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">统一额度模型</text>
+<text x="244" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">window · reset_at</text>
+<text x="244" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">credits · 置信度</text>
+<rect x="412" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="412" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="422" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">历史与燃尽</text>
+<text x="422" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">本地 SQLite</text>
+<text x="422" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">只存数值，不存原文</text>
+<rect x="590" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="590" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="600" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Pace 判定</text>
+<text x="600" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">按当前速度</text>
+<text x="600" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">是否会提前耗尽</text>
+<rect x="768" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="768" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="778" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">本机只读 API</text>
+<text x="778" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">127.0.0.1:6736</text>
+<text x="778" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">给脚本 / 其它 App</text>
+<rect x="946" y="376" width="164" height="76" rx="6" fill="#0f172a" opacity="0.55"/>
+<rect x="946" y="376" width="164" height="76" rx="6" fill="none" stroke="#34d399" stroke-width="1" opacity="0.85"/>
+<text x="956" y="396" font-size="9.6" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Secret Store</text>
+<text x="956" y="411.0" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Keychain · DPAPI</text>
+<text x="956" y="424.2" font-size="8.1" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Keystore · libsecret</text>
+<line x1="56" y1="466" x2="1104" y2="466" stroke="#34d399" stroke-width="0.6" opacity="0.45"/>
+<text x="56" y="484" font-size="8.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">统一输出 QuotaSnapshot{provider, plan, windows[], credits, status, source, fetched_at}</text>
+<text x="56" y="502" font-size="8.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">status ∈ ok · stale · auth_expired · rate_limited · deprecated · unsupported</text>
+<text x="56" y="526" font-size="8.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">同构 payload：5 个平台壳复用同一份数据 + 同一套 L0/L1/L2 可见性状态</text>
+<text x="1104" y="484" font-size="8.4" fill="#34d399" font-weight="400" text-anchor="end" opacity="1.0" letter-spacing="0">降级：单渠道失败 = 该卡片显示「数据过期 / 需重新登录」</text>
+<text x="1104" y="502" font-size="8.4" fill="#34d399" font-weight="400" text-anchor="end" opacity="1.0" letter-spacing="0">不阻塞其它渠道 · 不重试雪崩 · 不隐藏错误</text>
+<text x="1104" y="526" font-size="8.4" fill="#34d399" font-weight="400" text-anchor="end" opacity="1.0" letter-spacing="0">过期数据必须标注 fetched_at，绝不冒充实时</text>
+<rect x="40" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="40" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="40" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="52" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">macOS 14+</text><text x="52" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">菜单栏 NSStatusItem</text><text x="52" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">无 Dock 图标 · 26 有坑</text><circle cx="228" cy="655" r="3.6" fill="#34d399"/>
+<rect x="52" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="67.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="86" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="101.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="120" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="135.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<rect x="260" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="260" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="260" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="272" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Windows 11</text><text x="272" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">托盘 Shell_NotifyIcon</text><text x="272" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">任务栏贴条（实验性）</text><circle cx="448" cy="655" r="3.6" fill="#34d399"/>
+<rect x="272" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="287.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="306" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="321.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="340" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="355.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<rect x="480" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="480" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="480" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="492" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Linux（可选）</text><text x="492" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">Qt / StatusNotifier</text><text x="492" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">有现成实现可参考</text><circle cx="668" cy="655" r="3.6" fill="#34d399"/>
+<rect x="492" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="507.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="526" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="541.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="560" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="575.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<rect x="700" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="700" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="700" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="712" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">Android 13+</text><text x="712" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">常驻通知 + QS 磁贴</text><text x="712" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">需通知权限 + FGS 类型</text><circle cx="888" cy="655" r="3.6" fill="#fbbf24"/>
+<rect x="712" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="727.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="746" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="761.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="780" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="795.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<rect x="920" y="640" width="200" height="120" rx="8" fill="#0f172a"/><rect x="920" y="640" width="200" height="120" rx="8" fill="rgba(120,53,15,0.35)" stroke="#fbbf24" stroke-width="1.4"/><rect x="920" y="640" width="3" height="120" rx="1.5" fill="#fbbf24" opacity="0.9"/><text x="932" y="661" font-size="11.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">iOS 18+</text><text x="932" y="676" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">小组件 · 灵动岛 · 控制中心</text><text x="932" y="689.2" font-size="8.9" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">无第三方状态栏</text><circle cx="1108" cy="655" r="3.6" fill="#fbbf24"/>
+<rect x="932" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="947.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L0</text>
+<rect x="966" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="981.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L1</text>
+<rect x="1000" y="726" width="30" height="16" rx="3" fill="rgba(15,23,42,0.9)" stroke="#fbbf24" stroke-width="0.9"/><text x="1015.0" y="736.6" font-size="7.4" fill="#e2e8f0" font-weight="500" text-anchor="middle" opacity="1.0" letter-spacing="0">L2</text>
+<line x1="140.0" y1="180" x2="140.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="140.0" y1="322" x2="140.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="140.0" y1="546" x2="140.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<line x1="360.0" y1="180" x2="360.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="360.0" y1="322" x2="360.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="360.0" y1="546" x2="360.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<line x1="580.0" y1="180" x2="580.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="580.0" y1="322" x2="580.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="580.0" y1="546" x2="580.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<line x1="800.0" y1="180" x2="800.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="800.0" y1="322" x2="800.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="800.0" y1="546" x2="800.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<line x1="1020.0" y1="180" x2="1020.0" y2="222" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="1020.0" y1="322" x2="1020.0" y2="352" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<line x1="1020.0" y1="546" x2="1020.0" y2="636" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arwA)"/>
+<text x="680" y="596" font-size="8" fill="#fbbf24" font-weight="400" text-anchor="middle" opacity="1.0" letter-spacing="0">快照推送（同构 payload）</text>
+<rect x="1160" y="226" width="236" height="150" rx="10" fill="rgba(136,19,55,0.30)" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4"/>
+<text x="1174" y="250" font-size="10.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">可选：同步中继</text>
+<text x="1174" y="268" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">仅移动端需要</text>
+<text x="1174" y="288" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">首选取舍：桌面为 Hub</text>
+<text x="1174" y="302" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">（局域网 / 蓝牙直连）</text>
+<text x="1174" y="322" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">备选：E2E 加密中继</text>
+<text x="1174" y="336" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">只同步数值，不同步 token</text>
+<text x="1174" y="360" font-size="8" fill="#fb7185" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">红线：明文 refresh token 不上云</text>
+<rect x="1160" y="394" width="236" height="152" rx="10" fill="rgba(136,19,55,0.30)" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4"/>
+<text x="1174" y="418" font-size="10.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">合规与隐私红线</text>
+<text x="1174" y="440" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">· 只读：不代跑推理、不转发流量</text>
+<text x="1174" y="458" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">· 不做账号池、不共享凭据</text>
+<text x="1174" y="476" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">· 可离线：无网也有最后一次快照</text>
+<text x="1174" y="494" font-size="8.2" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">· 可审计：开源 + 本地日志</text>
+<text x="1174" y="528" font-size="7.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">ToS 灰色地带：按「用户自己的账号 + 只读展示」设计</text>
+<path d="M 1120 470 L 1160 300" fill="none" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4" marker-end="url(#arwR)"/>
+<path d="M 1278 546 L 1278 620 L 800 620 L 800 636" fill="none" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4" marker-end="url(#arwR)"/>
+<path d="M 1010 620 L 1010 636" fill="none" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4" marker-end="url(#arwR)"/>
+<text x="1168" y="596" font-size="7.8" fill="#fb7185" font-weight="500" text-anchor="start" opacity="1.0" letter-spacing="0">移动端经同步中继读取快照</text>
+<text x="1168" y="610" font-size="7.4" fill="#64748b" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">（不上传 token，只上传数值）</text>
+<text x="40" y="792" font-size="9.5" fill="#e2e8f0" font-weight="600" text-anchor="start" opacity="1.0" letter-spacing="0">图例</text>
+<line x1="80" y1="788" x2="116" y2="788" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arw)"/>
+<text x="122" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">数据读取（只读）</text>
+<line x1="270" y1="788" x2="306" y2="788" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="4,4"/>
+<text x="312" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">可选 / 降级路径</text>
+<circle cx="470" cy="785" r="4" fill="#34d399"/>
+<text x="480" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">官方或文档化</text>
+<circle cx="635" cy="785" r="4" fill="#fbbf24"/>
+<text x="645" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">未公开但已长期稳定</text>
+<circle cx="800" cy="785" r="4" fill="#fb7185"/>
+<text x="810" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">高风险 / 已停服</text>
+<rect x="980" y="779" width="14" height="14" rx="3" fill="none" stroke="#fbbf24" stroke-dasharray="4,3"/>
+<text x="1000" y="792" font-size="8" fill="#94a3b8" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">信任边界</text>
+<text x="1120" y="792" font-size="8" fill="#fbbf24" font-weight="400" text-anchor="start" opacity="1.0" letter-spacing="0">L0 完全隐藏 · L1 徽标 · L2 展开面板</text>
+</svg>
