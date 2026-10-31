@@ -64,14 +64,39 @@ root: /opt/data/ai-hud
 
 | 项 | 原因 | 何时能验 |
 | :--- | :--- | :--- |
-| `cargo build` / `tauri build` | 容器无 rustc、非 macOS | 在 Mac 上按 `docs/BUILD-macOS.md` 首次构建 |
+| 公证 / 分发 | 需要 Developer ID 证书 | 配置 §4 四个 secret |
 | 签名 / 公证 / 分发 | 需要 Developer ID | 发布前 |
 | NSPanel 非激活面板、NSWorkspace 唤醒事件 | 需要 AppKit 原生类替换 | macOS 实机阶段 |
 | 真实端点联调（4 渠道） | 本机无任何登录态；workspace 出网受限 | 有对应账号的机器上跑 `tools/quota_probe.py` |
 | 材质在浅色壁纸下的对比度 | 需要实机截图取样 | macOS 实机 + Increase Contrast 开关 |
 | 通知授权弹窗文案 | 需要系统首次授权 | 实机首次 `notify_post` |
 
-## 5. 复现方式
+
+## 6. CI 实测（GitHub Actions，2026-10-31）
+
+仓库：[`j9kkk/AIHUD`](https://github.com/j9kkk/AIHUD) · 工作流：[`macOS Build`](https://github.com/j9kkk/AIHUD/actions/workflows/macos.yml)
+镜像：`macos-14-arm64`（macOS 14.8.9，runner 2.338.2）
+
+| 阶段 | 结果 | 真实输出 |
+| :--- | :--- | :--- |
+| `checks`（ubuntu-latest） | ✅ 10/10 步骤 | tsc(core+ui) / vitest 288 / 凭据扫描 / 文档 31 项 / Rust 结构 / 对比度 全绿 |
+| Rust 工具链 | ✅ | stable + `aarch64-apple-darwin`、`x86_64-apple-darwin` |
+| `tauri icon` | ✅ | 1024px → `src-tauri/icons/{32x32,128x128,128x128@2x}.png + icon.icns` |
+| `cargo check --all-targets` | ✅ | **0 error / 0 warning**——手写的 11 个壳层模块一次编译通过 |
+| `tauri build --target universal-apple-darwin` | ✅ | `Bundling [tauri_bundler::bundle::macos::app] AI HUD.app` |
+| 架构 | ✅ | `lipo -info` → `x86_64 arm64` |
+| 签名 | ✅ | `Signature=adhoc`、`TeamIdentifier=not set`（预期：无 Developer ID） |
+| Info.plist | ✅ | `CFBundleIdentifier=app.aihud.desktop`、`LSMinimumSystemVersion=14.0` |
+| 体积 | ✅ | `.app` **18 MB**；`AI-HUD-macos-universal.zip` **8.5 MB** |
+
+**结论：`src-tauri/` 不再是"未编译的代码"** —— 它已经在 macOS 14 上编译、打包、ad-hoc 签名并产出 universal 应用。仍未验证的是**运行行为**（托盘交互、面板定位、Keychain 授权弹窗、通知权限），那需要人坐在 Mac 前面点。
+
+### 6.1 由于网络限制采用的发布方式
+
+开发容器到 `github.com:443`（网页 + git 传输）不可达，只有 `api.github.com` 可用。因此本仓通过 Git Data API 发布（`scripts/publish-api.py`：blob → tree → commit → ref），效果与 `git push` 等价。
+注意：**空仓库**直接调 blob 接口会返回 `409 Git Repository is empty`，脚本会先用 Contents API 播种一个 README 提交再继续。
+
+## 7. 复现方式
 
 ```bash
 cd /opt/data/ai-hud
