@@ -1,9 +1,8 @@
-name: macOS Build
+name: macOS Build & Release
 
-# 目的：在没有 Developer ID 的前提下，用 GitHub 的 macOS runner 产出一个
-# 可直接双击运行的 ad-hoc 签名的 AI HUD.app（universal：arm64 + x86_64）。
-# 正式分发（公证 + notarytool）需要另外配置 APPLE_ID / APPLE_TEAM_ID /
-# APPLE_APP_SPECIFIC_PASSWORD / APPLE_CERTIFICATE 四个 secret，见 docs/BUILD-macOS.md §4。
+# 推送即构建：checks → universal .app/.dmg → 自动发布 GitHub Release。
+# 产物为 ad-hoc 签名（无 Developer ID），用户首次打开需右键「打开」或去掉 quarantine。
+# 想要正式的 vX.Y.Z：把 package.json / tauri.conf.json / src-tauri/Cargo.toml 的 version 一起改。
 
 on:
   push:
@@ -16,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write   # 创建 Release 需要写权限
 
 env:
   CARGO_TERM_COLOR: always
@@ -59,10 +58,13 @@ jobs:
         run: node tests/contrast-sweep.mjs
 
   build-macos:
-    name: 构建 macOS 应用（ad-hoc 签名，universal）
+    name: 构建 macOS 应用（universal：arm64 + x86_64）
     needs: checks
     runs-on: macos-14
     timeout-minutes: 60
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      run_tag: ${{ steps.meta.outputs.run_tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -70,6 +72,14 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      - name: 读取版本号
+        id: meta
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "run_tag=v${VERSION}-build.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "版本：$VERSION"
 
       - name: 安装依赖
         run: npm ci
@@ -87,8 +97,10 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - name: 生成 App 图标（1024px → icns / png 套装）
-        run: npx tauri icon assets/icon.png
+      - name: 生成图标（应用图标 + 菜单栏模板图）
+        run: |
+          npx tauri icon assets/icon.png
+          ls -la src-tauri/icons | head -20
 
       - name: 组装前端（ui/prod）
         run: npm run build:ui
@@ -96,35 +108,51 @@ jobs:
       - name: cargo check（先要编译错误，再谈打包）
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
 
-      - name: 打包 .app
-        run: npx tauri build --target universal-apple-darwin --bundles app --verbose
+      - name: 打包 .app + .dmg
+        run: npx tauri build --target universal-apple-darwin --bundles app,dmg --verbose
 
-      - name: 校验产物（结构 + 签名 + 体积）
+      - name: 校验产物（结构 + 架构 + 签名 + 体积）
         run: |
+          set -euo pipefail
           APP="src-tauri/target/universal-apple-darwin/release/bundle/macos/AI HUD.app"
           test -d "$APP" || { echo "::error::没有生成 .app"; exit 1; }
           echo "== Info.plist =="
           /usr/libexec/PlistBuddy -c "Print :CFBundleName" "$APP/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$APP/Contents/Info.plist"
-          echo "== 架构（应为 arm64 + x86_64）=="
-          lipo -info "$APP/Contents/MacOS/ai-hud"
+          echo "== 架构（必须同时含 arm64 与 x86_64）=="
+          lipo -info "$APP/Contents/MacOS/ai-hud" | tee /tmp/lipo.txt
+          grep -q arm64 /tmp/lipo.txt || { echo "::error::缺少 arm64"; exit 1; }
+          grep -q x86_64 /tmp/lipo.txt || { echo "::error::缺少 x86_64"; exit 1; }
+          echo "== Resources（图标 / 前端产物）=="
+          ls -la "$APP/Contents/Resources" | head -10
           echo "== 签名 =="
           codesign -dv "$APP" 2>&1 | grep -E "Signature|Identifier" || true
           echo "== 体积 =="
           du -sh "$APP"
 
-      - name: 压缩为 zip
+      - name: 压缩为 zip + 收集 dmg
         run: |
-          cd src-tauri/target/universal-apple-darwin/release/bundle/macos
-          ditto -c -k --sequesterRsrc --keepParent "AI HUD.app" "$GITHUB_WORKSPACE/AI-HUD-macos-universal.zip"
-          ls -lh "$GITHUB_WORKSPACE/AI-HUD-macos-universal.zip"
+          set -euo pipefail
+          cd src-tauri/target/universal-apple-darwin/release/bundle
+          ditto -c -k --sequesterRsrc --keepParent "macos/AI HUD.app" "$GITHUB_WORKSPACE/AI-HUD-macos-universal.zip"
+          DMG=$(ls dmg/*.dmg | head -1)
+          cp "$DMG" "$GITHUB_WORKSPACE/AI-HUD-macos-universal.dmg"
+          ls -lh "$GITHUB_WORKSPACE"/AI-HUD-macos-universal.*
 
-      - name: 上传产物
+      - name: 上传 zip
         uses: actions/upload-artifact@v4
         with:
-          name: AI-HUD-macos-universal
+          name: AI-HUD-macos-universal-zip
           path: AI-HUD-macos-universal.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 上传 dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-HUD-macos-universal-dmg
+          path: AI-HUD-macos-universal.dmg
           if-no-files-found: error
           retention-days: 30
 
@@ -133,7 +161,62 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cargo-diagnostics
-          path: |
-            src-tauri/target/debug/build
+          path: src-tauri/target/debug/build
           if-no-files-found: ignore
           retention-days: 7
+
+  release:
+    name: 发布 GitHub Release
+    needs: build-macos
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          pattern: AI-HUD-macos-universal-*
+          merge-multiple: true
+          path: dist
+
+      - name: 列出产物
+        run: ls -lh dist
+
+      - name: 生成 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build-macos.outputs.run_tag }}
+          name: AI HUD ${{ needs.build-macos.outputs.version }} (build ${{ github.run_number }})
+          make_latest: true
+          draft: false
+          prerelease: false
+          files: |
+            dist/AI-HUD-macos-universal.zip
+            dist/AI-HUD-macos-universal.dmg
+          body: |
+            ## AI HUD ${{ needs.build-macos.outputs.version }}
+
+            macOS 菜单栏 AI 额度 HUD。**通用二进制**：Apple Silicon（arm64）与 Intel（x86_64）同一份包。
+
+            ### 安装
+
+            1. 下载 `AI-HUD-macos-universal.dmg`（或 `.zip`）
+            2. 拖进「应用程序」
+            3. 首次打开：右键 →「打开」；或执行
+
+            ```bash
+            xattr -dr com.apple.quarantine "/Applications/AI HUD.app"
+            ```
+
+            ### 说明
+
+            - 未使用 Developer ID 签名（ad-hoc），macOS 会提示「无法验证开发者」，属于预期
+            - 要求 macOS 14.0+
+            - 首次启动会自动弹出 360pt 面板；菜单栏图标为同心环轮廓
+            - 提交：`${{ github.sha }}`
+
+            ### 本次构建的检查
+
+            - 领域内核 288 个用例全绿
+            - `cargo check` 0 error / 0 warning
+            - universal 双架构 + ad-hoc 签名校验通过

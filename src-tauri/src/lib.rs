@@ -44,11 +44,19 @@ pub fn run() {
                 store: Arc::new(store),
             });
 
+            // 菜单栏应用：不占 Dock、不抢 App Switcher（macOS 专属）。
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             tray::install(app.handle())?;
             panel::install(app.handle())?;
             lifecycle::install(app.handle())?;
 
-            // 面板默认隐藏，仅托盘常驻；内核就绪后由 core.tick 推送首帧。
+            // 首次启动就把面板显示出来：菜单栏图标在没有真实额度数据前几乎没有
+            // 视觉反馈，如果不主动弹出，用户会以为「装了但没反应」。
+            // 后续行为交给托盘点击 / Esc / 失焦收起。
+            panel::show(app.handle());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

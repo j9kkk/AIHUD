@@ -161,12 +161,73 @@ def render() -> bytes:
     )
 
 
+# ==========================================
+# 菜单栏模板图标（template image）
+# ==========================================
+# macOS 菜单栏图标走 template：只吃 alpha 通道，系统自动按明暗外观着色。
+# 尺寸按 @2x 出图（44×44），逻辑 22×22，符合 HIG 的 status item 视觉重量。
+
+
+def render_tray() -> bytes:
+    size = 44
+    cx = cy = size / 2
+    r = size * 0.36
+    stroke = size * 0.115
+    start = -90.0
+    sweep = 360.0 * 0.70
+    px = [[(0, 0, 0, 0.0) for _ in range(size)] for _ in range(size)]
+
+    for y in range(size):
+        for x in range(size):
+            dx = x + 0.5 - cx
+            dy = y + 0.5 - cy
+            dist = math.hypot(dx, dy)
+            ang = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
+            alpha = 0.0
+
+            # 轨道：细一点、浅一点，避免在深色菜单栏上糊成实心圆
+            if abs(dist - r) <= stroke / 2:
+                alpha = 0.45
+                rel = (ang - (start % 360.0) + 360.0) % 360.0
+                if rel <= sweep:
+                    alpha = 1.0
+
+            # 圆头端点
+            for cap_angle in (start, start + sweep):
+                ca = math.radians(cap_angle)
+                cxp = cx + r * math.cos(ca)
+                cyp = cy + r * math.sin(ca)
+                if math.hypot(x + 0.5 - cxp, y + 0.5 - cyp) <= stroke / 2:
+                    alpha = 1.0
+
+            # template 只用 alpha 通道，RGB 固定 0
+            px[y][x] = (0, 0, 0, alpha)
+
+    raw = bytearray()
+    for y in range(size):
+        raw.append(0)
+        for x in range(size):
+            a = int(round(px[y][x][3] * 255))
+            raw += bytes((0, 0, 0, a))
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    ihdr = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b"")
+
+
 def main() -> None:
     out = Path(__file__).resolve().parent.parent / "assets" / "icon.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     data = render()
     out.write_bytes(data)
     print(f"wrote {out} ({len(data)} bytes, {SIZE}x{SIZE})")
+
+    tray_out = out.parent / "tray-template@2x.png"
+    tray_data = render_tray()
+    tray_out.write_bytes(tray_data)
+    print(f"wrote {tray_out} ({len(tray_data)} bytes, 44x44 template)")
 
 
 if __name__ == "__main__":
