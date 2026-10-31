@@ -1,0 +1,9 @@
+node_modules/
+dist/
+target/
+.worktrees/
+*.log
+.DS_Store
+ui/prod/
+src-tauri/icons/
+src-tauri/gen/

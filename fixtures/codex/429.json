@@ -1,0 +1,17 @@
+{
+  "status": 429,
+  "headers": {
+    "content-type": "application/json",
+    "retry-after": "30",
+    "x-request-id": "req_codex_429_01"
+  },
+  "body": {
+    "error": {
+      "code": "rate_limit_exceeded",
+      "message": "You exceeded your current quota, please check your plan."
+    }
+  },
+  "meta": {
+    "schema_version": "codex.v1"
+  }
+}

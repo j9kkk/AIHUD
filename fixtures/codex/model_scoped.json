@@ -1,0 +1,56 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "x-request-id": "req_codex_model_01"
+  },
+  "body": {
+    "rate_limit": {
+      "primary_window": {
+        "used_percent": 50,
+        "reset_at": 1761830400,
+        "limit_window_seconds": 18000
+      },
+      "secondary_window": {
+        "used_percent": 30,
+        "reset_at": 1762348800,
+        "limit_window_seconds": 604800
+      },
+      "by_model": {
+        "gpt-5-codex": {
+          "primary_window": {
+            "used_percent": 85,
+            "reset_at": 1761830400,
+            "limit_window_seconds": 18000
+          },
+          "secondary_window": {
+            "used_percent": 60,
+            "reset_at": 1762348800,
+            "limit_window_seconds": 604800
+          }
+        },
+        "gpt-4.5-codex": {
+          "primary_window": {
+            "used_percent": 20,
+            "reset_at": 1761830400,
+            "limit_window_seconds": 18000
+          },
+          "secondary_window": {
+            "used_percent": 15,
+            "reset_at": 1762348800,
+            "limit_window_seconds": 604800
+          }
+        }
+      }
+    },
+    "credits": {
+      "balance": 12000
+    },
+    "rate_limit_reset_credits": {
+      "available_count": 1
+    }
+  },
+  "meta": {
+    "schema_version": "codex.v1"
+  }
+}

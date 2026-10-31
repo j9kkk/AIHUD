@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "x-request-id": "req_claude_norm_01"
+  },
+  "body": {
+    "five_hour": {
+      "utilization": 25.0,
+      "resets_at": "2026-10-31T15:00:00.000Z"
+    },
+    "seven_day": {
+      "utilization": 40.0,
+      "resets_at": "2026-11-05T09:00:00.000Z"
+    },
+    "seven_day_opus": {
+      "utilization": 10.0,
+      "resets_at": "2026-11-05T09:00:00.000Z"
+    },
+    "extra_usage": {
+      "amount_cents": 350
+    }
+  },
+  "meta": {
+    "schema_version": "claude.v1"
+  }
+}

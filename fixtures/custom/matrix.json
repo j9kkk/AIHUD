@@ -1,0 +1,273 @@
+{
+  "version": 1,
+  "note": "脱敏构造样本，不含任何凭据",
+  "cases": [
+    {
+      "id": "c01-normal",
+      "payload": {
+        "data": {
+          "remaining": 250,
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 0.25
+      }
+    },
+    {
+      "id": "c02-full",
+      "payload": {
+        "data": {
+          "remaining": 1000,
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 1
+      }
+    },
+    {
+      "id": "c03-zero",
+      "payload": {
+        "data": {
+          "remaining": 0,
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 0
+      }
+    },
+    {
+      "id": "c04-total-missing",
+      "payload": {
+        "data": {
+          "remaining": 250
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    },
+    {
+      "id": "c05-total-zero",
+      "payload": {
+        "data": {
+          "remaining": 0,
+          "total": 0
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    },
+    {
+      "id": "c06-out-of-range",
+      "payload": {
+        "data": {
+          "remaining": 1200,
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    },
+    {
+      "id": "c07-tolerance",
+      "payload": {
+        "data": {
+          "remaining": 1003,
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 1
+      }
+    },
+    {
+      "id": "c08-negative",
+      "payload": {
+        "data": {
+          "remaining": -5,
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    },
+    {
+      "id": "c09-string-number",
+      "payload": {
+        "data": {
+          "remaining": "250",
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    },
+    {
+      "id": "c10-null-remaining",
+      "payload": {
+        "data": {
+          "remaining": null,
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    },
+    {
+      "id": "c11-array-path",
+      "payload": {
+        "data": {
+          "items": [
+            {
+              "remaining": 5
+            },
+            {
+              "remaining": 30
+            }
+          ]
+        }
+      },
+      "path": {
+        "remaining": "$.data.items[1].remaining",
+        "total": "$.data.items[1].remaining"
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 1
+      }
+    },
+    {
+      "id": "c12-resets-seconds",
+      "payload": {
+        "data": {
+          "remaining": 500,
+          "total": 1000,
+          "reset": 1767225600
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 0.5,
+        "resets_at": 1767225600000
+      }
+    },
+    {
+      "id": "c13-resets-iso",
+      "payload": {
+        "data": {
+          "remaining": 500,
+          "total": 1000,
+          "reset": "2026-11-01T00:00:00Z"
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 0.5,
+        "resets_at": 1793491200000
+      }
+    },
+    {
+      "id": "c14-resets-invalid",
+      "payload": {
+        "data": {
+          "remaining": 500,
+          "total": 1000,
+          "reset": "soon"
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 0.5,
+        "resets_at": null
+      }
+    },
+    {
+      "id": "c15-float",
+      "payload": {
+        "data": {
+          "remaining": 33.3,
+          "total": 99.9
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 0.3333333
+      }
+    },
+    {
+      "id": "c16-huge",
+      "payload": {
+        "data": {
+          "remaining": 9007199254740,
+          "total": 9007199254741
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ratio": 0.9999999
+      }
+    },
+    {
+      "id": "c17-single-window",
+      "payload": {
+        "data": {
+          "remaining": 40,
+          "total": 100
+        }
+      },
+      "visual": "single_periodic_window",
+      "expect": {
+        "ok": true,
+        "ratio": 0.4,
+        "kind": "windows"
+      }
+    },
+    {
+      "id": "c18-empty-object",
+      "payload": {},
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    },
+    {
+      "id": "c19-html-as-string",
+      "payload": "<html>login</html>",
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    },
+    {
+      "id": "c20-boolean",
+      "payload": {
+        "data": {
+          "remaining": true,
+          "total": 1000
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_class": "schema"
+      }
+    }
+  ]
+}

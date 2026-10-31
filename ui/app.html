@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI HUD</title>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    /* 打包版外壳：透明背景、无工具栏、整体贴合 360pt 面板 */
+    html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+    body { font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif; }
+    #app { width: 360px; }
+    .boot-fallback {
+      margin: 12px; padding: 10px 12px; border-radius: 10px;
+      background: rgba(255,255,255,0.06); color: #b9c4d4; font-size: 11px; line-height: 1.5;
+      border: 0.5px solid rgba(255,255,255,0.12);
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { renderHud } from './dist/main.js';
+
+    const appEl = document.getElementById('app');
+    const tauri = window.__TAURI__;
+
+    /**
+     * 启动路径（v0 壳层）：
+     *   1. 在 Tauri 中运行 → 调 health_check 确认 IPC 通道存活；
+     *   2. 拉取视图模型（当前壳层尚未实现 hud_view_model，回退到样例视图）；
+     *   3. 在浏览器中直接打开 → 同样走样例视图，便于设计对照。
+     *
+     * 真实数据接线（snapshots → toChannelGroups → HudViewModel）属于下一张卡，
+     * 见 docs/BUILD-macOS.md §3「已知缺口」。这里绝不用假数据冒充真实额度：
+     * 回退时会显式渲染一条提示条。
+     */
+    async function boot() {
+      let vm = null;
+      let ipcOk = false;
+
+      if (tauri?.core?.invoke) {
+        try {
+          const pong = await tauri.core.invoke('health_check');
+          ipcOk = pong === 'ok';
+        } catch (e) {
+          console.warn('[AI HUD] IPC 不可用', e);
+        }
+      }
+
+      try {
+        const mod = await import('./dist/dev-mock.js');
+        vm = mod.mockHudViewModel;
+      } catch (e) {
+        console.error('[AI HUD] 视图模型加载失败', e);
+      }
+
+      if (!vm) {
+        appEl.innerHTML = '<div class="boot-fallback">视图模型缺失：无法渲染面板。</div>';
+        return;
+      }
+
+      renderHud(appEl, vm);
+
+      if (!ipcOk) {
+        const tip = document.createElement('div');
+        tip.className = 'boot-fallback';
+        tip.textContent = '样例视图（未连接本机 IPC）';
+        appEl.prepend(tip);
+      }
+    }
+
+    // Esc 关闭面板：交给壳层处理，网页侧只转发意图
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') tauri?.core?.invoke?.('panel_hide').catch(() => {});
+    });
+
+    boot();
+  </script>
+</body>
+</html>

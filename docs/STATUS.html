@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>AI HUD · 执行看板</title>
+<style>
+  :root {
+    --bg:#0b0e14; --panel:#121721; --line:rgba(255,255,255,.10);
+    --fg:#e9eef7; --muted:#b9c4d4; --accent:#32D74B;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding-bottom:56px; background:var(--bg); color:var(--fg);
+    font: 14px/1.5 -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif; padding:32px; }
+  h1 { font-size:22px; margin:0 0 4px; letter-spacing:-.01em; }
+  .sub { color:var(--muted); font-size:12.5px; margin-bottom:24px; }
+  .grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:26px; }
+  .kpi { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px;
+    box-shadow: inset 0 .5px 0 rgba(255,255,255,.06); }
+  .kpi .k { color:var(--muted); font-size:12px; letter-spacing:.04em; }
+  .kpi .v { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:6px; }
+  .kpi .u { font-size:13px; color:var(--muted); font-weight:500; margin-left:4px; }
+  .bar { height:6px; border-radius:3px; background:rgba(255,255,255,.08); margin-top:12px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--accent); border-radius:3px; }
+  h2 { font-size:15px; margin:26px 0 10px; color:var(--fg); }
+  table { width:100%; border-collapse:collapse; background:var(--panel);
+    border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  th, td { text-align:left; padding:9px 14px; border-bottom:1px solid var(--line); font-size:13px; vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.03em; background:rgba(255,255,255,.02); }
+  tr:last-child td { border-bottom:none; }
+  .num, th.num { font-variant-numeric:tabular-nums; text-align:right; }
+  code { font:12px/1.4 ui-monospace, "SF Mono", Menlo, monospace; color:#9ad0ff; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:600;
+    color:var(--c); background:color-mix(in srgb, var(--c) 16%, transparent);
+    border:.5px solid color-mix(in srgb, var(--c) 40%, transparent); }
+  .note { color:var(--muted); font-size:12px; margin-top:10px; }
+  ul.log { list-style:none; padding:0; margin:0; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:12px 16px; }
+  ul.log li { font:12.5px/1.9 ui-monospace, "SF Mono", Menlo, monospace; color:#c7d2e2; }
+  .warn { color:#FF9F0A; }
+</style></head><body>
+<h1>AI HUD · 执行看板</h1>
+<div class="sub">生成于 2026-10-31 03:01 · 工作流 <code>20261030-232052-ai-hud-design</code> · 看板 <code>ai-hud</code> · 仓库 <code>/opt/data/ai-hud</code></div>
+
+<div class="grid">
+  <div class="kpi"><div class="k">看板任务</div><div class="v">12<span class="u">/ 12 完成</span></div>
+    <div class="bar"><i style="width:100%"></i></div></div>
+  <div class="kpi"><div class="k">工作流成本</div><div class="v">$0.58<span class="u">USD</span></div>
+    <div class="note">701,769▸502,504 tokens · 441 calls</div></div>
+  <div class="kpi"><div class="k">原型屏数</div><div class="v">44<span class="u">屏</span></div>
+    <div class="note">E01–E32 / F1–F8 全覆盖</div></div>
+  <div class="kpi"><div class="k">测试与模块</div><div class="v">19<span class="u">spec 文件</span></div>
+    <div class="note">11 个 Rust 模块 · 9 份文档</div></div>
+</div>
+
+<h2>工作流节点（设计 → 审计 → 修复 → 规格）</h2>
+<table><thead><tr><th>节点</th><th>状态</th><th class="num">耗时</th><th class="num">API</th><th class="num">Tokens</th><th class="num">成本</th></tr></thead>
+<tbody><tr><td><code>arch</code></td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">978s</td><td class="num">27</td><td class="num">83986▸51284</td><td class="num">$0.048</td></tr><tr><td><code>flows</code></td><td><span class="pill" style="--c:#FFD60A">已收尾</span></td><td class="num">1658s</td><td class="num">65</td><td class="num">67680▸74586</td><td class="num">$0.071</td></tr><tr><td><code>proto</code></td><td><span class="pill" style="--c:#FFD60A">已收尾</span></td><td class="num">2575s</td><td class="num">90</td><td class="num">143165▸134315</td><td class="num">$0.147</td></tr><tr><td><code>audit</code></td><td><span class="pill" style="--c:#FFD60A">已收尾</span></td><td class="num">1194s</td><td class="num">63</td><td class="num">123937▸64567</td><td class="num">$0.080</td></tr><tr><td><code>fix</code></td><td><span class="pill" style="--c:#FFD60A">已收尾</span></td><td class="num">1347s</td><td class="num">130</td><td class="num">140154▸95305</td><td class="num">$0.134</td></tr><tr><td><code>spec</code></td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">877s</td><td class="num">66</td><td class="num">142847▸82447</td><td class="num">$0.101</td></tr></tbody></table>
+
+<h2>看板任务（实现切片）</h2>
+<table><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>执行者</th></tr></thead>
+<tbody><tr><td><code>t_697c071d</code></td><td>骨架：TS 工作区 + vitest + Tauri 2 壳配置</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_42eae810</code></td><td>core/domain：领域模型 + 不变式 + 格式化 + 状态机</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_e4591224</code></td><td>drivers：claude + codex 驱动与 fixtures</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_d481e05d</code></td><td>drivers：workbuddy + gemini + 注册表</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_43cf2ebd</code></td><td>scheduler：轮询、退避、刷新闸门、独立熔断</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_c0fd9dd3</code></td><td>presentation：卡片/菜单栏投影 + 渠道分组分页</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_3836895c</code></td><td>UI 渲染层：Level-1 面板 + Level-2 详情 + 状态组件</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_4b7360bb</code></td><td>Tauri 2 macOS 壳：托盘/面板/Keychain/白名单 IPC</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_957f6989</code></td><td>验证入口：verify.sh + 安全扫描 + VERIFY.md</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_eae1e501</code></td><td>domain 边界裁决：pause_until / floor 取整 / 越界判定（SPEC S01–S03）</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_e1597e95</code></td><td>自定义渠道 + fixture 矩阵 20 例（SPEC S04/S08）</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr><tr><td><code>t_6de43657</code></td><td>文档一致性回改 + check-doc（SPEC S16）</td><td><span class="pill" style="--c:#32D74B">完成</span></td><td class="num">builder</td></tr></tbody></table>
+<div class="note warn">注：任务被 rate-limit（provider 配额墙）中断后会自动回到「待领取」；壳层（src-tauri）由主控接手完成，compiled 状态仍为未验证。</div>
+
+<h2>最近提交</h2>
+<ul class="log"><li>1876098 feat(core): S01 账号级边界 pause_until/hidden/revision + I11–I13（288 测试全绿）</li><li>83ff8d1 docs: SPEC §8 实现状态（S02/S03/S04/S08/S16 完成，274 测试，附自定义渠道实证）</li><li>1e02fb9 feat(ui): dev-mock 增加自定义渠道卡片（S04 端到端实证：同一投影规则 + credits_pool 形态）</li><li>90d787f feat(drivers): 自定义渠道 S04（配置驱动适配器 + JSONPath 子集 + 严格越界/缺失判定）+ S08 fixture 矩阵 20 例 + S16 check-doc（31 项）</li><li>a6568c5 chore: 刷新 STATUS.html（9/12 任务）</li><li>478bbbe docs: 执行看板 STATUS.html（工作流 6 节点 + 12 任务 + 真实成本/测试数）+ 截图</li><li>e85099d feat(core): formatPercent 改向下取整（D-02），99.9% 不再显示成 100%</li><li>eadd9c2 feat(verify): verify.sh 一键验证 + 安全扫描 + 对比度令牌检查 + VERIFY.md（6/6 通过，222 测试）</li><li>ab7f14a feat(src-tauri): 完整壳层（托盘/面板/Keychain/白名单 HTTP/CLI 桥/SQLite/通知/生命周期/13 条 IPC）+ BUILD-macOS.md + 静态自检脚本（未编译验证）</li><li>ca529e6 Merge branch 'ai-hud/t_3836895c-ui-level-1-level-2'</li><li>d9ca886 feat(ui): Level-1 面板 + Level-2 详情 + 状态组件与视觉基元（rate-limit 中断前已完成的实现）</li><li>61a6bf7 docs(spec): 收敛工程规格 SPEC v1.0（类型契约/渠道映射/调度熔断/UI 契约/测试矩阵/16 切片 + 14 条裁决）</li></ul>
+</body></html>

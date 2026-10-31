@@ -1,0 +1,61 @@
+{
+  "run_id": "20261030-232052-ai-hud-design",
+  "source": "workflow status（hermes workflow 工具 output，2026-10-31 02:5x）",
+  "totals": {
+    "cost_usd": 0.5822,
+    "tokens_in": 701769,
+    "tokens_out": 502504,
+    "api_calls": 441
+  },
+  "nodes": [
+    {
+      "id": "arch",
+      "status": "done",
+      "ms": 978195,
+      "api": 27,
+      "tokens": "83986▸51284",
+      "cost": 0.0484
+    },
+    {
+      "id": "flows",
+      "status": "partial→harvest",
+      "ms": 1657651,
+      "api": 65,
+      "tokens": "67680▸74586",
+      "cost": 0.0715
+    },
+    {
+      "id": "proto",
+      "status": "partial→harvest",
+      "ms": 2575432,
+      "api": 90,
+      "tokens": "143165▸134315",
+      "cost": 0.1473
+    },
+    {
+      "id": "audit",
+      "status": "partial→harvest",
+      "ms": 1193707,
+      "api": 63,
+      "tokens": "123937▸64567",
+      "cost": 0.0804
+    },
+    {
+      "id": "fix",
+      "status": "partial→harvest",
+      "ms": 1347305,
+      "api": 130,
+      "tokens": "140154▸95305",
+      "cost": 0.1337
+    },
+    {
+      "id": "spec",
+      "status": "done",
+      "ms": 877177,
+      "api": 66,
+      "tokens": "142847▸82447",
+      "cost": 0.101
+    }
+  ],
+  "note": "四个节点因迭代上限被判 partial，但产物已完整落盘并由主控接管收尾（cp/补齐文档），成本照实计入。"
+}

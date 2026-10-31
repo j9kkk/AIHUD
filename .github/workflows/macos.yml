@@ -1,0 +1,139 @@
+name: macOS Build
+
+# 目的：在没有 Developer ID 的前提下，用 GitHub 的 macOS runner 产出一个
+# 可直接双击运行的 ad-hoc 签名的 AI HUD.app（universal：arm64 + x86_64）。
+# 正式分发（公证 + notarytool）需要另外配置 APPLE_ID / APPLE_TEAM_ID /
+# APPLE_APP_SPECIFIC_PASSWORD / APPLE_CERTIFICATE 四个 secret，见 docs/BUILD-macOS.md §4。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  checks:
+    name: 内核测试与静态检查
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 类型检查（core + ui）
+        run: |
+          npx tsc -p core --noEmit
+          npx tsc -p ui --noEmit
+
+      - name: 领域内核测试
+        run: npx vitest run --root core
+
+      - name: 凭据零明文扫描
+        run: bash tests/security-scan.sh
+
+      - name: 文档一致性（44 屏原型 / 32 边界 / S01–S16）
+        run: python3 scripts/check-doc.py
+
+      - name: Rust 壳层结构自检
+        run: python3 scripts/check-rust-shell.py
+
+      - name: 对比度与字号令牌
+        run: node tests/contrast-sweep.mjs
+
+  build-macos:
+    name: 构建 macOS 应用（ad-hoc 签名，universal）
+    needs: checks
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 安装 Rust 工具链（含两个 Apple target）
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          rustc --version
+          cargo --version
+
+      - name: 缓存 Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: 生成 App 图标（1024px → icns / png 套装）
+        run: npx tauri icon assets/icon.png
+
+      - name: 组装前端（ui/prod）
+        run: npm run build:ui
+
+      - name: cargo check（先要编译错误，再谈打包）
+        run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+
+      - name: 打包 .app
+        run: npx tauri build --target universal-apple-darwin --bundles app --verbose
+
+      - name: 校验产物（结构 + 签名 + 体积）
+        run: |
+          APP="src-tauri/target/universal-apple-darwin/release/bundle/macos/AI HUD.app"
+          test -d "$APP" || { echo "::error::没有生成 .app"; exit 1; }
+          echo "== Info.plist =="
+          /usr/libexec/PlistBuddy -c "Print :CFBundleName" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$APP/Contents/Info.plist"
+          echo "== 架构（应为 arm64 + x86_64）=="
+          lipo -info "$APP/Contents/MacOS/ai-hud"
+          echo "== 签名 =="
+          codesign -dv "$APP" 2>&1 | grep -E "Signature|Identifier" || true
+          echo "== 体积 =="
+          du -sh "$APP"
+
+      - name: 压缩为 zip
+        run: |
+          cd src-tauri/target/universal-apple-darwin/release/bundle/macos
+          ditto -c -k --sequesterRsrc --keepParent "AI HUD.app" "$GITHUB_WORKSPACE/AI-HUD-macos-universal.zip"
+          ls -lh "$GITHUB_WORKSPACE/AI-HUD-macos-universal.zip"
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-HUD-macos-universal
+          path: AI-HUD-macos-universal.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 上传构建日志（失败时）
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-diagnostics
+          path: |
+            src-tauri/target/debug/build
+          if-no-files-found: ignore
+          retention-days: 7

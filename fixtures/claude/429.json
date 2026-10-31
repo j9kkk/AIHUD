@@ -1,0 +1,17 @@
+{
+  "status": 429,
+  "headers": {
+    "content-type": "application/json",
+    "retry-after": "45",
+    "x-request-id": "req_claude_429_01"
+  },
+  "body": {
+    "error": {
+      "type": "rate_limit_error",
+      "message": "Usage limit exceeded, retry after 45 seconds"
+    }
+  },
+  "meta": {
+    "schema_version": "claude.v1"
+  }
+}
