@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AI HUD · p11 控制中心模块 → 二级时间轴</title>
+<style>
+/* 间距 4pt 网格；字号 17/13/11/10；字重 400/600；可点 ≥28 */
+:root{
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;
+  --fr:"SF Pro Rounded",-apple-system,"PingFang SC",sans-serif;
+}
+.dark{
+  --panel:rgba(30,30,32,.68);--stroke:rgba(255,255,255,.14);
+  --label:#fff;--label2:rgba(255,255,255,.72);--label3:rgba(255,255,255,.60);
+  --green:#30d158;--red:#ff453a;--orange:#ff9f0a;--accent:#0a84ff;
+  --fill:rgba(255,255,255,.10);--track:rgba(255,255,255,.14);
+  --hover:rgba(255,255,255,.08);--well:rgba(255,255,255,.06);--sep:rgba(255,255,255,.12);--label3:rgba(255,255,255,.55);
+  --shadow:0 0 0 .5px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.28),0 20px 54px rgba(0,0,0,.48);
+  --wall1:#1b2333;--wall2:#2a1f2e;--bar:rgba(20,20,22,.45);--barink:#fff;
+}
+.light{
+  --panel:rgba(246,246,248,.78);--stroke:rgba(255,255,255,.85);
+  --label:rgba(0,0,0,.88);--label2:rgba(0,0,0,.65);--label3:rgba(0,0,0,.62);
+  --green:#34c759;--red:#ff3b30;--orange:#ff9500;--accent:#007aff;
+  --fill:rgba(0,0,0,.06);--track:rgba(0,0,0,.08);
+  --hover:rgba(0,0,0,.05);--well:rgba(0,0,0,.04);--sep:rgba(0,0,0,.09);--label3:rgba(0,0,0,.48);
+  --shadow:0 0 0 .5px rgba(0,0,0,.14),0 2px 8px rgba(0,0,0,.08),0 20px 54px rgba(0,0,0,.18);
+  --wall1:#b9cbe6;--wall2:#e7d3dc;--bar:rgba(255,255,255,.55);--barink:#1d1d1f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f);background:#0c0c0e;color:#e9e9ec;-webkit-font-smoothing:antialiased}
+.page{max-width:1400px;margin:0 auto;padding:28px 32px 8px}
+.page h1{font-size:22px;font-weight:600;margin-bottom:8px}
+.page p{font-size:13px;line-height:1.65;color:#a4a4ab;max-width:1080px}
+.tb{display:flex;gap:8px;margin-top:12px}
+.tb button{font:inherit;font-size:12px;padding:5px 12px;border-radius:7px;border:1px solid #38383c;background:#1b1b1e;color:#d4d4d8;cursor:pointer}
+.tb button.on{background:#0068da;border-color:#0068da;color:#fff}
+.row{max-width:1400px;margin:20px auto 0;padding:0 32px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.cap{margin:8px 0 0;font-size:11.5px;color:#9a9aa2;line-height:1.6}
+.stage{position:relative;height:520px;border-radius:14px;overflow:hidden;
+  background:
+    radial-gradient(circle at 22% 30%,rgba(255,140,90,.5),transparent 38%),
+    radial-gradient(circle at 78% 72%,rgba(80,150,255,.5),transparent 40%),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 12px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 12px),
+    linear-gradient(135deg,var(--wall1),var(--wall2))}
+.menubar{position:absolute;inset:0 0 auto 0;height:24px;display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:0 12px;
+  background:var(--bar);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);color:var(--barink);font-size:13px}
+.mb{display:flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:5px;font-variant-numeric:tabular-nums}
+.mb.open{background:rgba(127,127,127,.32)}
+.mb b{color:var(--red);font-weight:600}
+
+/* ── 面板 ── */
+.panel{position:absolute;top:30px;right:16px;width:352px;padding:12px;border-radius:14px;color:var(--label);
+  background:var(--panel);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);
+  border:.5px solid var(--stroke);box-shadow:var(--shadow);user-select:none}
+.ph{display:flex;align-items:center;height:28px;margin-bottom:8px;gap:6px}
+.ph .t{font-size:13px;font-weight:600;line-height:16px}
+.ph .s{font-size:11px;color:var(--label2);line-height:14px;font-variant-numeric:tabular-nums}
+.ph .bd{font-size:10px;color:var(--label2);line-height:13px}
+.icon{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--label2);background:transparent;border:0}
+.icon:hover{background:var(--hover);color:var(--label)}
+.icon svg{width:14px;height:14px}
+.ph .sp{margin-left:auto}
+
+/* ── 一级：控制中心模块 ── */
+.mod{background:var(--fill);border-radius:12px;padding:12px;margin-bottom:8px}
+.mod.hero{padding-bottom:12px}
+.modhead{display:flex;align-items:center;gap:6px;height:18px}
+.modhead .nm{font-size:13px;font-weight:600;line-height:16px}
+.modhead .bd{font-size:10px;color:var(--label2);line-height:13px;border:0}
+.modhead .chev{margin-left:auto;color:var(--label2);display:grid;place-items:center;width:12px}
+.modhead .chev svg{width:11px;height:11px}
+.big{font-family:var(--fr);font-size:17px;font-weight:600;line-height:22px;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.big small{font-size:13px;font-weight:600}
+.big.r{color:var(--red)}
+.hero .r1{display:flex;align-items:baseline;margin-top:8px}
+.hero .r1 .right{margin-left:auto;font-size:11px;line-height:14px;color:var(--label2);font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:var(--track);margin:8px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--green)}
+.bar i.r{background:var(--red)}
+.meta{font-size:11px;line-height:14px;color:var(--label2);font-variant-numeric:tabular-nums}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.duo .mod{margin-bottom:0;padding:12px}
+.duo .v{margin-top:8px}
+.sep{height:.5px;background:var(--sep);margin:6px 0 4px}
+.tlrow + .tlrow{padding-top:14px}
+.cmd{display:flex;align-items:center;height:28px;margin:0 -8px;padding:0 8px;border-radius:6px;font-size:13px}
+.cmd:hover{background:var(--hover)}
+.cmd .k{margin-left:auto;font-size:13px;color:var(--label2)}
+
+/* ── 二级：时间轴 ── */
+.back{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--label2);margin-left:-6px}
+.back:hover{background:var(--hover);color:var(--label)}
+.back svg{width:12px;height:12px}
+.sum{display:flex;align-items:baseline;padding:0 2px 8px}
+.sum .left{font-size:11px;color:var(--label2)}
+.tl{padding-top:2px}
+.tlrow{display:grid;grid-template-columns:84px 12px 1fr;column-gap:8px;padding:10px 0}
+.tlwhen .d{font-size:13px;font-weight:600;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tlwhen .a{font-size:10px;line-height:13px;color:var(--label2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tlrail{position:relative}
+.tlrail .dot{position:absolute;top:4px;left:3px;width:7px;height:7px;border-radius:50%;background:var(--label2);opacity:.75}
+.tlrail .dot.r{background:var(--red)}
+.tlrail .line{position:absolute;left:6px;top:13px;bottom:-14px;width:1px;background:var(--sep)}
+.tlrow:first-child .tlrail::before{content:'';position:absolute;left:6px;top:-10px;width:1px;height:14px;background:var(--sep)}
+.tlrow:last-child .tlrail::after{content:'';position:absolute;left:6px;top:11px;width:1px;height:16px;background:var(--sep)}
+.tlbody .top{display:flex;align-items:baseline;gap:6px}
+.tlbody .k{font-size:13px;line-height:16px}
+.tlbody .v{margin-left:auto;font-family:var(--fr);font-size:17px;font-weight:600;line-height:20px;font-variant-numeric:tabular-nums}
+.tlbody .v.r{color:var(--red)}
+.tlbody .bar{margin:5px 0 3px}
+.tlalert{display:flex;align-items:center;gap:6px;padding:10px 2px;border-top:1px solid var(--sep)}
+.tlalert .g{display:grid;place-items:center;width:12px;color:var(--orange)}
+.tlalert .m{font-size:13px;font-weight:600;line-height:16px}
+.tlalert .n{font-size:11px;color:var(--label2);line-height:14px}
+.push{display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 12px;border-radius:6px;
+  background:var(--accent);color:#fff;font-size:13px;margin-left:auto}
+.foot{display:flex;justify-content:flex-end;margin:8px 0 4px}
+.foot .cmd{margin:0}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>p11 · 一级＝控制中心模块，二级＝恢复时间轴</h1>
+  <p>主界面照 d10 的模块拼法：最紧张的账号占一个通栏大模块，其余账号并排两个小模块；点任意模块，面板内部原地推进到二级，二级内容取 d05 的时间轴——按恢复时间从近到远排列，左侧倒计时与时刻，右侧窗口名、剩余和容量条；顶部有返回按钮。两级都在同一个面板里，不弹新窗口。</p>
+  <div class="tb"><button data-t="dark" class="on">深色</button><button data-t="light">浅色</button></div>
+</div>
+<div id="root" class="dark">
+
+<div class="row">
+  <div>
+    <div class="stage">
+      <div class="menubar"><div class="mb open"><span data-mb></span><b>12%</b></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+      <div class="panel" id="p1">
+        <div class="ph"><span class="t">AI 额度</span><span class="s">剩余 · 00:04 更新</span>
+          <span class="sp"></span><span class="icon" data-ico="refresh"></span></div>
+        <div class="mod hero" data-go="wb">
+          <div class="modhead"><span class="nm">WorkBuddy</span><span class="bd">高级版 · 国内站</span>
+            <span class="chev" data-ico="chev"></span></div>
+          <div class="r1"><span class="big r">12<small>%</small></span><span class="right">剩 1,579 / 13,326</span></div>
+          <div class="bar"><i class="r" style="width:12%"></i></div>
+          <div class="meta">积分 · 11月9日 到期</div>
+        </div>
+        <div class="duo">
+          <div class="mod" data-go="claude">
+            <div class="modhead"><span class="nm">Claude</span><span class="bd">Pro</span><span class="chev" data-ico="chev"></span></div>
+            <div class="v"><span class="big">52<small>%</small></span></div>
+            <div class="bar"><i style="width:52%"></i></div>
+            <div class="meta">5 小时 · 今天 02:30</div>
+          </div>
+          <div class="mod" data-go="codex">
+            <div class="modhead"><span class="nm">Codex</span><span class="bd">Free</span><span class="chev" data-ico="chev"></span></div>
+            <div class="v"><span class="big">100<small>%</small></span></div>
+            <div class="bar"><i style="width:100%"></i></div>
+            <div class="meta">本周 · 11月27日</div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="cmd">添加账号…</div>
+        <div class="cmd">AI HUD 设置…<span class="k">⌘,</span></div>
+      </div>
+    </div>
+    <p class="cap">一级（深色）：模块 352pt 宽、单列通栏 + 双列小模块；模块内边距 10×12，模块间距 8；数值 17pt 圆体半粗，模块标题 13pt 半粗，附注 11pt 次要色。</p>
+  </div>
+  <div>
+    <div class="stage">
+      <div class="menubar"><div class="mb open"><span data-mb></span><b>12%</b></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+      <div class="panel" id="p1l">
+        <div class="ph"><span class="t">AI 额度</span><span class="s">剩余 · 00:04 更新</span>
+          <span class="sp"></span><span class="icon" data-ico="refresh"></span></div>
+        <div class="mod hero" data-go="wb">
+          <div class="modhead"><span class="nm">WorkBuddy</span><span class="bd">高级版 · 国内站</span>
+            <span class="chev" data-ico="chev"></span></div>
+          <div class="r1"><span class="big r">12<small>%</small></span><span class="right">剩 1,579 / 13,326</span></div>
+          <div class="bar"><i class="r" style="width:12%"></i></div>
+          <div class="meta">积分 · 11月9日 到期</div>
+        </div>
+        <div class="duo">
+          <div class="mod" data-go="claude">
+            <div class="modhead"><span class="nm">Claude</span><span class="bd">Pro</span><span class="chev" data-ico="chev"></span></div>
+            <div class="v"><span class="big">52<small>%</small></span></div>
+            <div class="bar"><i style="width:52%"></i></div>
+            <div class="meta">5 小时 · 今天 02:30</div>
+          </div>
+          <div class="mod" data-go="codex">
+            <div class="modhead"><span class="nm">Codex</span><span class="bd">Free</span><span class="chev" data-ico="chev"></span></div>
+            <div class="v"><span class="big">100<small>%</small></span></div>
+            <div class="bar"><i style="width:100%"></i></div>
+            <div class="meta">本周 · 11月27日</div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="cmd">添加账号…</div>
+        <div class="cmd">AI HUD 设置…<span class="k">⌘,</span></div>
+      </div>
+    </div>
+    <p class="cap">一级（浅色）：同一结构换语义色。<b>点 Claude 模块</b>即进入右边那种二级视图。</p>
+  </div>
+</div>
+
+<div class="row">
+  <div>
+    <div class="stage">
+      <div class="menubar"><div class="mb open"><span data-mb></span><b>12%</b></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+      <div class="panel">
+        <div class="ph"><span class="back" data-ico="back"></span><span class="t">Claude</span><span class="bd bd2">Pro</span>
+          <span class="sp"></span><span class="icon" data-ico="refresh2"></span></div>
+        <div class="tl">
+          <div class="tlrow">
+            <div class="tlwhen"><div class="d">2 小时 26 分</div><div class="a">今天 02:30</div></div>
+            <div class="tlrail"><span class="dot"></span><span class="line"></span></div>
+            <div class="tlbody">
+              <div class="top"><span class="k">5 小时窗口</span><span class="v">52%</span></div>
+              <div class="bar"><i style="width:52%"></i></div>
+              <div class="meta">重置至 100%</div>
+            </div>
+          </div>
+          <div class="tlrow">
+            <div class="tlwhen"><div class="d">6 天</div><div class="a">11月7日 13:00</div></div>
+            <div class="tlrail"><span class="dot"></span></div>
+            <div class="tlbody">
+              <div class="top"><span class="k">本周窗口</span><span class="v">82%</span></div>
+              <div class="bar"><i style="width:82%"></i></div>
+              <div class="meta">周配额重置至 100%</div>
+            </div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="cmd">打开 Claude 用量页面…</div>
+        <div class="cmd">移除此账号…</div>
+      </div>
+    </div>
+    <p class="cap">二级（深色）：返回按钮 28×28；时间轴行 62pt 时间列 + 12pt 轨道 + 内容列；每行名称 13pt、数值 13pt 半粗、条 6pt、说明 11pt。</p>
+  </div>
+  <div>
+    <div class="stage">
+      <div class="menubar"><div class="mb open"><span data-mb></span><b>12%</b></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+      <div class="panel">
+        <div class="ph"><span class="back" data-ico="back"></span><span class="t">客户 A 交付</span><span class="bd bd2">Pro</span>
+          <span class="sp"></span><span class="icon" data-ico="refresh2"></span></div>
+        <div class="sum"><span class="left">登录已失效，没有可用的恢复时间</span></div>
+        <div class="tlalert">
+          <span class="g" data-ico="warn"></span>
+          <span><span class="m">无法读取配额</span><br><span class="n">10月29日起没有新数据</span></span>
+        </div>
+        <div class="foot"><span class="push">重新授权…</span></div>
+        <div class="sep"></div>
+        <div class="cmd">打开 Claude 用量页面…</div>
+        <div class="cmd">移除此账号…</div>
+      </div>
+    </div>
+    <p class="cap">二级（浅色，异常账号）：时间轴不该出现虚假节点，改为一条告警行 + 唯一的系统蓝按钮；下方仍是「打开用量页面 / 移除账号」两个整行命令。</p>
+  </div>
+</div>
+</div>
+
+<script>
+const ICO={
+ refresh:'<svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13.2 3v3.2H10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+ refresh2:'<svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13.2 3v3.2H10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+ chev:'<svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+ back:'<svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8 10 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+ warn:'<svg viewBox="0 0 16 16"><path d="M8 2.6 14.4 13.4H1.6L8 2.6Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.4v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".8" fill="currentColor"/></svg>',
+ gauge:'<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="2"/><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4.5 37.7" transform="rotate(-90 8 8)"/></svg>'
+};
+document.querySelectorAll('[data-ico]').forEach(e=>e.innerHTML=ICO[e.dataset.ico]||'');
+document.querySelectorAll('[data-mb]').forEach(e=>e.innerHTML=ICO.gauge);
+document.querySelectorAll('.tb button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tb button').forEach(x=>x.classList.toggle('on',x===b));
+  document.getElementById('root').className=b.dataset.t;});
+</script>
+</body>
+</html>

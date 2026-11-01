@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AI HUD · p12 列表 / 圆环双视图 + 详情</title>
+<style>
+/* 间距 4pt 网格；字号 17/13/11/10；字重 400/600；可点 ≥28 */
+:root{--f:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;
+      --fr:"SF Pro Rounded",-apple-system,"PingFang SC",sans-serif}
+.dark{
+  --panel:rgba(30,30,32,.68);--stroke:rgba(255,255,255,.14);
+  --label:#fff;--label2:rgba(255,255,255,.72);--label3:rgba(255,255,255,.60);
+  --green:#30d158;--red:#ff453a;--orange:#ff9f0a;--accent:#0a84ff;
+  --fill:rgba(255,255,255,.10);--track:rgba(255,255,255,.14);
+  --hover:rgba(255,255,255,.08);--well:rgba(255,255,255,.06);--sep:rgba(255,255,255,.12);--label3:rgba(255,255,255,.55);
+  --seg:rgba(255,255,255,.10);--thumb:rgba(255,255,255,.22);
+  --shadow:0 0 0 .5px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.28),0 20px 54px rgba(0,0,0,.48);
+  --wall1:#1b2333;--wall2:#2a1f2e;--bar:rgba(20,20,22,.45);--barink:#fff;
+}
+.light{
+  --panel:rgba(246,246,248,.78);--stroke:rgba(255,255,255,.85);
+  --label:rgba(0,0,0,.88);--label2:rgba(0,0,0,.65);--label3:rgba(0,0,0,.62);
+  --green:#34c759;--red:#ff3b30;--orange:#ff9500;--accent:#007aff;
+  --fill:rgba(0,0,0,.06);--track:rgba(0,0,0,.08);
+  --hover:rgba(0,0,0,.05);--well:rgba(0,0,0,.04);--sep:rgba(0,0,0,.09);--label3:rgba(0,0,0,.48);
+  --seg:rgba(0,0,0,.06);--thumb:#fff;
+  --shadow:0 0 0 .5px rgba(0,0,0,.14),0 2px 8px rgba(0,0,0,.08),0 20px 54px rgba(0,0,0,.18);
+  --wall1:#b9cbe6;--wall2:#e7d3dc;--bar:rgba(255,255,255,.55);--barink:#1d1d1f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f);background:#0c0c0e;color:#e9e9ec;-webkit-font-smoothing:antialiased}
+.page{max-width:1400px;margin:0 auto;padding:28px 32px 8px}
+.page h1{font-size:22px;font-weight:600;margin-bottom:8px}
+.page p{font-size:13px;line-height:1.65;color:#a4a4ab;max-width:1080px}
+.tb{display:flex;gap:8px;margin-top:12px}
+.tb button{font:inherit;font-size:12px;padding:5px 12px;border-radius:7px;border:1px solid #38383c;background:#1b1b1e;color:#d4d4d8;cursor:pointer}
+.tb button.on{background:#0068da;border-color:#0068da;color:#fff}
+.row{max-width:1400px;margin:20px auto 0;padding:0 32px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.cap{margin:8px 0 0;font-size:11.5px;color:#9a9aa2;line-height:1.6}
+.stage{position:relative;height:500px;border-radius:14px;overflow:hidden;
+  background:
+    radial-gradient(circle at 22% 30%,rgba(255,140,90,.5),transparent 38%),
+    radial-gradient(circle at 78% 72%,rgba(80,150,255,.5),transparent 40%),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 12px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 12px),
+    linear-gradient(135deg,var(--wall1),var(--wall2))}
+.menubar{position:absolute;inset:0 0 auto 0;height:24px;display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:0 12px;
+  background:var(--bar);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);color:var(--barink);font-size:13px}
+.mb{display:flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:5px;font-variant-numeric:tabular-nums}
+.mb.open{background:rgba(127,127,127,.32)}
+.mb b{color:var(--red);font-weight:600}
+
+.panel{position:absolute;top:30px;right:16px;width:352px;padding:12px;border-radius:14px;color:var(--label);
+  background:var(--panel);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);
+  border:.5px solid var(--stroke);box-shadow:var(--shadow);user-select:none}
+.ph{display:flex;align-items:center;height:28px;margin-bottom:8px;gap:6px}
+.ph .t{font-size:13px;font-weight:600;line-height:16px}
+.ph .s{font-size:11px;color:var(--label2);line-height:14px;font-variant-numeric:tabular-nums}
+.bd{font-size:10px;font-weight:400;color:var(--label2);line-height:13px}
+.icon{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--label2)}
+.icon:hover{background:var(--hover);color:var(--label)}
+.icon svg{width:14px;height:14px}
+.sp{margin-left:auto}
+
+/* 视图切换：系统分段控件，可视 22 高，每段命中 28×28 */
+.seg{display:flex;align-items:center;height:28px;padding:0;border-radius:7px;background:var(--seg);gap:0}
+.seg button{width:30px;height:28px;border:0;border-radius:7px;background:transparent;color:var(--label2);display:grid;place-items:center;padding:3px;background-clip:content-box}
+.seg button svg{width:13px;height:13px;position:relative}
+.seg button.on{background-color:var(--thumb);color:var(--label);border-radius:5px}
+
+/* 视图 A：列表 + 行尾小圆环 */
+.listrow{display:flex;align-items:center;gap:10px;height:56px;padding:0 2px}
+.listrow + .listrow{border-top:.5px solid var(--sep)}
+.listrow .who{min-width:0;flex:1}
+.listrow .nm{font-size:13px;font-weight:600;line-height:16px;display:flex;align-items:center;gap:6px}
+.listrow .nm .x{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.listrow .meta{font-size:11px;line-height:14px;color:var(--label2);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.listrow .val{font-size:13px;font-weight:600;line-height:16px;font-variant-numeric:tabular-nums;text-align:right;min-width:42px}
+.listrow .val.r{color:var(--red)}
+.ring{position:relative;width:24px;height:24px;flex:none;display:grid;place-items:center}
+.ring svg{position:absolute;inset:0}
+.ring .g{font-size:11px;font-weight:600;color:var(--orange);line-height:1}
+
+/* 视图 B：圆环网格 */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);row-gap:8px;margin:0 -4px}
+.tile{display:flex;flex-direction:column;align-items:center;padding:6px 4px;border-radius:10px;min-width:0}
+.tile:hover{background:var(--hover)}
+.tile .rg{position:relative;width:52px;height:52px;display:grid;place-items:center}
+.tile .rg svg{position:absolute;inset:0}
+.tile .rg .v{font-family:var(--fr);font-size:15px;font-weight:600;line-height:18px;font-variant-numeric:tabular-nums}
+.tile .n{margin-top:6px;max-width:100%;font-size:11px;line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .m{max-width:100%;font-size:10px;line-height:13px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+
+/* 详情：圆环网格原地展开的样子（参考 d01） */
+.detail{grid-column:1/-1;margin:4px 0;padding:10px 12px 4px;border-radius:10px;background:var(--well)}
+.dh{display:flex;align-items:baseline;gap:6px;height:16px;margin-bottom:4px}
+.dh .nm{font-size:13px;font-weight:600;line-height:16px}
+.dh .bd{font-size:10px}
+.dh .pv{margin-left:auto;font-size:11px;color:var(--label2)}
+.dr{display:grid;grid-template-columns:28px 1fr auto;column-gap:10px;align-items:center;padding:8px 0}
+.dr + .dr{border-top:.5px solid var(--sep)}
+.dr .rg{position:relative;width:28px;height:28px;display:grid;place-items:center}
+.dr .rg svg{position:absolute;inset:0}
+.dr .k{font-size:13px;line-height:16px}
+.dr .r{font-size:11px;line-height:14px;color:var(--label2);font-variant-numeric:tabular-nums}
+.dr .val{font-family:var(--fr);font-size:17px;font-weight:600;line-height:20px;font-variant-numeric:tabular-nums;text-align:right}
+.dr .val.r{color:var(--red)}
+.dr .val small{font-size:13px}
+.dr .val.nd{font-family:var(--f);font-size:13px;font-weight:400;color:var(--label2)}
+.alertrow{display:flex;align-items:center;gap:8px;padding:8px 0}
+.alertrow .g{width:28px;height:28px;display:grid;place-items:center;color:var(--orange)}
+.alertrow .m{font-size:13px;line-height:16px}
+.alertrow .n{font-size:11px;line-height:14px;color:var(--label2)}
+.push{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:6px;background:var(--accent);color:#fff;font-size:13px}
+.foot{display:flex;justify-content:flex-end;margin:6px 0 10px}
+.sep{height:.5px;background:var(--sep);margin:6px 0 4px}
+.cmd{display:flex;align-items:center;height:28px;margin:0 -8px;padding:0 8px;border-radius:6px;font-size:13px}
+.cmd:hover{background:var(--hover)}
+.cmd .k{margin-left:auto;font-size:13px;color:var(--label2)}
+.back{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--label2);margin-left:-4px}
+.back:hover{background:var(--hover);color:var(--label)}
+.back svg{width:12px;height:12px}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>p12 · 列表 / 圆环两种视图可切换，两种都能点开详情</h1>
+  <p>主界面右上角一组系统分段控件切换「列表」与「圆环」两种形态：列表照 d02（每账号一行，右侧 24pt 小圆环），圆环照 d01（一账号一格，52pt 环）。两种视图点任意账号都会在面板内推进到详情页，详情用 d01 的展开样式：每个窗口一行小圆环 + 名称 + 重置时间 + 大号数值，失效账号单独一条告警行加「重新授权…」按钮。</p>
+  <div class="tb"><button data-t="dark" class="on">深色</button><button data-t="light">浅色</button></div>
+</div>
+<div id="root" class="dark">
+
+<div class="row">
+  <div>
+    <div class="stage">
+      <div class="menubar"><div class="mb open"><span data-mb></span><b>12%</b></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+      <div class="panel">
+        <div class="ph"><span class="t">AI 额度</span><span class="s">剩余 · 00:04 更新</span><span class="sp"></span>
+          <span class="seg"><button class="on" data-ico="list"></button><button data-ico="grid"></button></span>
+          <span class="icon" data-ico="refresh"></span></div>
+        <div class="listrow">
+          <div class="who"><div class="nm"><span class="x">Claude</span><span class="bd">Pro</span></div><div class="meta">5 小时 · 今天 02:30</div></div>
+          <div class="val">52%</div><span class="ring" data-ring="52"></span>
+        </div>
+        <div class="listrow">
+          <div class="who"><div class="nm"><span class="x">Codex</span><span class="bd">Free</span></div><div class="meta">本周 · 11月27日 14:22</div></div>
+          <div class="val">100%</div><span class="ring" data-ring="100"></span>
+        </div>
+        <div class="listrow">
+          <div class="who"><div class="nm"><span class="x">WorkBuddy</span><span class="bd">高级版</span></div><div class="meta">积分 · 1,579 / 13,326</div></div>
+          <div class="val r">12%</div><span class="ring" data-ring="12"></span>
+        </div>
+        <div class="listrow">
+          <div class="who"><div class="nm"><span class="x">客户 A 交付</span><span class="bd">Pro</span></div><div class="meta" style="color:var(--orange)">登录已失效 · 需重新授权</div></div>
+          <div class="val"></div><span class="ring" data-ring="-1"></span>
+        </div>
+        <div class="sep"></div>
+        <div class="cmd">添加账号…</div>
+        <div class="cmd">AI HUD 设置…<span class="k">⌘,</span></div>
+      </div>
+    </div>
+    <p class="cap">视图 A（深色）：行高 56，右侧数值列固定 42pt 宽、等宽数字；24pt 小圆环；失效账号用虚线环 + 感叹号，不给数值。</p>
+  </div>
+  <div>
+    <div class="stage">
+      <div class="menubar"><div class="mb open"><span data-mb></span><b>12%</b></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+      <div class="panel">
+        <div class="ph"><span class="t">AI 额度</span><span class="s">剩余 · 00:04 更新</span><span class="sp"></span>
+          <span class="seg"><button data-ico="list"></button><button class="on" data-ico="grid"></button></span>
+          <span class="icon" data-ico="refresh"></span></div>
+        <div class="grid">
+          <div class="tile"><div class="rg" data-ring52="52"><span class="v">52%</span></div><div class="n">Claude</div><div class="m">5 小时 · 02:30</div></div>
+          <div class="tile"><div class="rg" data-ring52="100"><span class="v">100%</span></div><div class="n">Codex</div><div class="m">本周 · 11/27</div></div>
+          <div class="tile"><div class="rg" data-ring52="12"><span class="v" style="color:var(--red)">12%</span></div><div class="n">WorkBuddy</div><div class="m">1,579 积分</div></div>
+          <div class="tile"><div class="rg" data-ring52="-1"><span class="g" data-ico-warn="1"></span></div><div class="n">客户 A 交付</div><div class="m" style="color:var(--orange)">需重新授权</div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="cmd">添加账号…</div>
+        <div class="cmd">AI HUD 设置…<span class="k">⌘,</span></div>
+      </div>
+    </div>
+    <p class="cap">视图 B（浅色）：一格一账号，环 52pt、线宽 5；环内 15pt 圆体半粗；环下名称 11pt、附注 10pt。<b>点任意一格</b>进入下一行的详情页。</p>
+  </div>
+</div>
+
+<div class="row">
+  <div>
+    <div class="stage">
+      <div class="menubar"><div class="mb open"><span data-mb></span><b>12%</b></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+      <div class="panel">
+        <div class="ph"><span class="back" data-ico="back"></span><span class="t">Claude</span><span class="bd">Pro</span><span class="sp"></span><span class="icon" data-ico="refresh"></span></div>
+        <div class="detail">
+          <div class="dr"><span class="rg" data-ring28="52"></span><div><div class="k">5 小时窗口</div><div class="r">今天 02:30 重置</div></div><div class="val">52<small>%</small></div></div>
+          <div class="dr"><span class="rg" data-ring28="82"></span><div><div class="k">本周窗口</div><div class="r">11月7日 13:00 重置</div></div><div class="val">82<small>%</small></div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="cmd">打开 Claude 用量页面…</div>
+        <div class="cmd">移除此账号…</div>
+      </div>
+    </div>
+    <p class="cap">详情（深色）：窗口行 28pt 小圆环 + 名称 13pt + 重置 11pt + 右侧 17pt 圆体数值；失效账号在详情页里也占一行，直接给「重新授权…」。</p>
+  </div>
+  <div>
+    <div class="stage">
+      <div class="menubar"><div class="mb open"><span data-mb></span><b>12%</b></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+      <div class="panel">
+        <div class="ph"><span class="back" data-ico="back"></span><span class="t">客户 A 交付</span><span class="bd">Pro</span><span class="sp"></span><span class="icon" data-ico="refresh"></span></div>
+        <div class="detail">
+          <div class="alertrow" style="padding:2px 0 6px">
+            <span class="g" data-ico="warn"></span>
+            <span><span class="m">登录已失效</span><br><span class="n">10月29日起没有新数据，重新授权后保留别名与历史</span></span>
+          </div>
+          <div class="dr" style="border-top:.5px solid var(--sep)">
+            <span class="rg" style="color:var(--label2)"><svg viewBox="0 0 28 28" width="28" height="28"><circle cx="14" cy="14" r="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3.5" opacity=".8"/></svg></span>
+            <div><div class="k">5 小时 / 本周 窗口</div><div class="r">上次成功读取：10月29日 14:20</div></div>
+            <div class="val nd">无数据</div>
+          </div>
+        </div>
+        <div class="foot"><span class="push">重新授权…</span></div>
+        <div class="sep"></div>
+        <div class="cmd">打开 Claude 用量页面…</div>
+        <div class="cmd">移除此账号…</div>
+      </div>
+    </div>
+    <p class="cap">详情（浅色，异常账号）：不显示任何百分比，只写「无数据」和上次成功读取的时间；整页唯一的系统蓝按钮是「重新授权…」，删除账号用红字命令。</p>
+  </div>
+</div>
+</div>
+
+<script>
+function ringSVG(size,stroke,pct,opts={}){
+  const r=(size-stroke)/2,c=2*Math.PI*r,x=size/2;
+  let s=`<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
+  if(pct<0){
+    s+=`<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="var(--label2)" stroke-width="1.5" stroke-dasharray="3 3.5" opacity=".8"/>`;
+  }else{
+    const col=pct<20?'var(--red)':'var(--green)';
+    s+=`<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${col}" stroke-opacity=".25" stroke-width="${stroke}"/>`;
+    if(pct>0) s+=`<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${col}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${pct>=100?c:c*pct/100} ${c}" transform="rotate(-90 ${x} ${x})"/>`;
+  }
+  return s+'</svg>';
+}
+document.querySelectorAll('[data-ring]').forEach(e=>e.innerHTML=ringSVG(24,3,+e.dataset.ring));
+document.querySelectorAll('[data-ring52]').forEach(e=>e.insertAdjacentHTML('afterbegin',ringSVG(52,5,+e.dataset.ring52)));
+document.querySelectorAll('[data-ring28]').forEach(e=>e.innerHTML=ringSVG(28,4,+e.dataset.ring28));
+const ICO={
+ list:'<svg viewBox="0 0 16 16"><circle cx="3.2" cy="4.4" r="1" fill="currentColor"/><circle cx="3.2" cy="8" r="1" fill="currentColor"/><circle cx="3.2" cy="11.6" r="1" fill="currentColor"/><path d="M6 4.4h7.4M6 8h7.4M6 11.6h7.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+ grid:'<svg viewBox="0 0 16 16"><rect x="2.4" y="2.4" width="4.9" height="4.9" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="8.7" y="2.4" width="4.9" height="4.9" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2.4" y="8.7" width="4.9" height="4.9" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="8.7" y="8.7" width="4.9" height="4.9" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+ refresh:'<svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13.2 3v3.2H10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+ back:'<svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8 10 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+ warn:'<svg viewBox="0 0 16 16"><path d="M8 2.6 14.4 13.4H1.6L8 2.6Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.4v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".8" fill="currentColor"/></svg>',
+ gauge:'<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="2"/><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4.5 37.7" transform="rotate(-90 8 8)"/></svg>'
+};
+document.querySelectorAll('[data-ico]').forEach(e=>e.innerHTML=ICO[e.dataset.ico]||'');
+document.querySelectorAll('[data-ico-warn]').forEach(e=>{e.innerHTML=ICO.warn;e.style.width='18px';e.style.height='18px';e.style.display='grid';e.style.placeItems='center';});
+document.querySelectorAll('[data-mb]').forEach(e=>e.innerHTML=ICO.gauge);
+document.querySelectorAll('.tb button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tb button').forEach(x=>x.classList.toggle('on',x===b));
+  document.getElementById('root').className=b.dataset.t;});
+</script>
+</body>
+</html>

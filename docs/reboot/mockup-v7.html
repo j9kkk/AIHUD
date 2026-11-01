@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AI HUD · 效果图 v7（按 Apple 规范重做：圆环颜色 / 字体层级 / 操作样式）</title>
+<style>
+/* ───────── 令牌：全部取自 macOS 系统语义值 ─────────
+   文字色：label 100% · secondaryLabel 55%(深)/50%(浅) · tertiaryLabel 25%/26%（只用于禁用和轨道，不用于正文）
+   系统色：systemGreen #30D158 / #34C759 · systemRed #FF453A / #FF3B30 · systemOrange #FF9F0A / #FF9500 · controlAccent #0A84FF / #007AFF
+   字号：Headline 13 半粗 · Body 13 常规 · Subheadline 11 · Footnote 10；环内数值 15 圆体半粗
+   字重：只有 常规 400 和 半粗 600 两档
+*/
+:root{--f:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif;--fr:"SF Pro Rounded",-apple-system,"PingFang SC",sans-serif}
+.dark{
+  --panel:rgba(30,30,32,.62);--stroke:rgba(255,255,255,.14);
+  --label:#fff;--label2:rgba(255,255,255,.55);--label3:rgba(255,255,255,.25);
+  --green:#30d158;--red:#ff453a;--orange:#ff9f0a;--orange-text:#ff9f0a;--accent:#0a84ff;
+  --fill:rgba(255,255,255,.10);--hover:rgba(255,255,255,.10);--sel:rgba(255,255,255,.08);--well:rgba(255,255,255,.06);
+  --sep:rgba(255,255,255,.10);
+  --shadow:0 0 0 .5px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.25),0 18px 50px rgba(0,0,0,.45);
+  --wall1:#1b2333;--wall2:#2a1f2e;--bar:rgba(20,20,22,.45);--barink:#fff;
+}
+.light{
+  --panel:rgba(246,246,248,.72);--stroke:rgba(255,255,255,.8);
+  --label:rgba(0,0,0,.88);--label2:rgba(0,0,0,.50);--label3:rgba(0,0,0,.26);
+  --green:#34c759;--red:#ff3b30;--orange:#ff9500;--orange-text:#c93400;--accent:#007aff;
+  --fill:rgba(0,0,0,.06);--hover:rgba(0,0,0,.06);--sel:rgba(0,0,0,.05);--well:rgba(0,0,0,.035);
+  --sep:rgba(0,0,0,.09);
+  --shadow:0 0 0 .5px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.08),0 18px 50px rgba(0,0,0,.18);
+  --wall1:#b9cbe6;--wall2:#e7d3dc;--bar:rgba(255,255,255,.5);--barink:#1d1d1f;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--f);background:#0c0c0e;color:#e9e9ec;-webkit-font-smoothing:antialiased}
+.page{max-width:1240px;margin:0 auto;padding:28px 32px 0}
+.page h1{margin:0 0 8px;font-size:22px;font-weight:600}
+.page p{margin:0 0 6px;font-size:13px;line-height:1.65;color:#a4a4ab;max-width:1080px}
+.page p b{color:#e6e6ea}
+.tb{display:flex;gap:8px;margin-top:14px}
+.tb button{font:inherit;font-size:12px;padding:5px 12px;border-radius:7px;border:1px solid #38383c;background:#1b1b1e;color:#d4d4d8;cursor:pointer}
+.tb button.on{background:#0068da;border-color:#0068da;color:#fff}
+section.v{max-width:1240px;margin:22px auto 0;padding:0 32px}
+section.v h2{font-size:16px;font-weight:600;margin:0 0 6px}
+section.v .note{font-size:12.5px;color:#a8a8b0;line-height:1.6;margin:0 0 12px;max-width:1080px}
+
+.stage{position:relative;border-radius:14px;overflow:hidden;
+  background:
+    radial-gradient(circle at 22% 30%,rgba(255,140,90,.55),transparent 38%),
+    radial-gradient(circle at 78% 72%,rgba(80,150,255,.55),transparent 40%),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 12px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 12px),
+    linear-gradient(135deg,var(--wall1),var(--wall2))}
+.menubar{position:absolute;inset:0 0 auto 0;height:24px;display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:0 12px;
+  background:var(--bar);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);color:var(--barink);font-size:13px}
+.mb{display:flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:5px;font-variant-numeric:tabular-nums}
+.mb.open{background:rgba(127,127,127,.32)}
+.mb b{color:var(--red);font-weight:700}
+.cap{position:absolute;bottom:12px;left:16px;right:16px;font-size:11.5px;line-height:1.6;color:rgba(255,255,255,.8)}
+.light .cap{color:rgba(0,0,0,.62)}
+.tag{position:absolute;font-size:11px;font-weight:600;color:rgba(255,255,255,.85);background:rgba(0,0,0,.35);padding:2px 8px;border-radius:10px}
+.light .tag{color:rgba(0,0,0,.7);background:rgba(255,255,255,.55)}
+
+/* ───────── 面板 ───────── */
+.panel{position:absolute;width:344px;padding:12px 8px 6px;border-radius:20px;color:var(--label);
+  background:var(--panel);backdrop-filter:blur(40px) saturate(1.9);-webkit-backdrop-filter:blur(40px) saturate(1.9);
+  border:.5px solid var(--stroke);box-shadow:var(--shadow)}
+/* 标题行：Headline 13 半粗 + Subheadline 11 次要色；刷新是无边框图标按钮（SF Symbol arrow.clockwise 风格），28×28 命中区 */
+.ph{display:flex;align-items:center;height:28px;padding:0 4px 0 8px;margin-bottom:4px}
+.ph .t{font-size:13px;line-height:16px;font-weight:600}
+.ph .s{margin-left:6px;font-size:11px;line-height:14px;color:var(--label2);font-variant-numeric:tabular-nums}
+.icon{margin-left:auto;width:28px;height:28px;border-radius:14px;display:grid;place-items:center;color:var(--label2);cursor:default}
+.icon:hover,.icon.hov{background:var(--hover);color:var(--label)}
+.icon svg{width:15px;height:15px}
+.icon.spin svg{animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.grid{display:grid;grid-template-columns:repeat(4,1fr);row-gap:4px}
+.tile{display:flex;flex-direction:column;align-items:center;padding:8px 4px 8px;border-radius:12px;min-width:0;cursor:default}
+.tile:hover{background:var(--hover)}
+.tile.sel{background:var(--sel)}
+.ring{position:relative;width:52px;height:52px;display:grid;place-items:center}
+.ring svg{position:absolute;inset:0}
+/* 环内：数值 15 圆体半粗，% 降为 10，颜色始终是 label —— 数值不着色，颜色只在环上 */
+.ring .v{font-family:var(--fr);font-size:15px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.ring .v small{font-size:15px;font-weight:600}
+.ring .glyph{width:18px;height:18px;position:static}
+/* 环下：名字 Subheadline 11 常规 label；附注 Footnote 10 secondaryLabel —— 状态色只用于异常文字 */
+.tile .n{margin-top:6px;max-width:100%;font-size:11px;line-height:14px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .m{max-width:100%;font-size:10px;line-height:13px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.tile .m.warn{color:var(--orange-text)}
+
+/* 展开区：系统「分组背景」，内部是容量指示条（Gauge .linearCapacity） */
+.detail{grid-column:1/-1;margin:4px 0;padding:10px 12px 4px;border-radius:12px;background:var(--well)}
+.dh{display:flex;align-items:baseline;height:16px;margin-bottom:6px}
+.dh .nm{font-size:13px;line-height:16px;font-weight:600}
+.dh .pl{margin-left:6px;font-size:11px;line-height:14px;color:var(--label2)}
+.win{padding:6px 0}
+.win .l1{display:flex;align-items:baseline;justify-content:space-between;height:16px}
+.win .k{font-size:13px;line-height:16px}
+.win .val{font-size:13px;line-height:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;margin:6px 0 4px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+.win .r{font-size:11px;line-height:14px;color:var(--label2);font-variant-numeric:tabular-nums}
+/* 展开区底部：菜单项样式的命令行（同控制中心模块末尾的「…设置…」） */
+.dsep{height:1px;background:var(--sep);margin:6px 0 4px}
+.cmd{display:flex;align-items:center;height:24px;margin:0 -8px;padding:0 8px;border-radius:6px;font-size:13px;line-height:16px;cursor:default}
+.cmd:hover,.cmd.hov{background:var(--hover)}
+.cmd .key{margin-left:auto;color:var(--label2);font-size:13px}
+.msg{font-size:13px;line-height:16px;margin:2px 0 2px}
+.msg2{font-size:11px;line-height:14px;color:var(--label2);margin-bottom:10px}
+/* 唯一的突出按钮：系统 push button（.borderedProminent，常规尺寸 24 高，圆角 6） */
+.push{display:inline-flex;align-items:center;height:24px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:400;background:var(--accent);color:#fff;box-shadow:0 .5px 1px rgba(0,0,0,.25)}
+.btnrow{display:flex;justify-content:flex-end;padding-bottom:8px}
+
+/* 面板底部：同样是菜单项样式 */
+.psep{height:1px;background:var(--sep);margin:6px 8px 4px}
+.pcmd{display:flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;font-size:13px;line-height:16px;cursor:default}
+.pcmd:hover,.pcmd.hov{background:var(--hover)}
+
+.cmp{max-width:1240px;margin:22px auto 0;padding:0 32px;font-size:12.5px;color:#b0b0b8;line-height:1.7}
+.cmp h2{font-size:15px;color:#e8e8ec;margin:0 0 8px}
+.cmp table{border-collapse:collapse;width:100%;font-size:12px}
+.cmp th,.cmp td{border:1px solid #2a2a2e;padding:6px 10px;text-align:left;vertical-align:top}
+.cmp th{background:#191919;color:#ddd;font-weight:600}
+.cmp td:first-child{white-space:nowrap;color:#ddd}
+.cmp{margin-bottom:40px}
+@media (prefers-reduced-motion:reduce){.icon.spin svg{animation:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>AI HUD · 效果图 v7：圆环颜色、字体层级、操作样式按 Apple 规范重做</h1>
+  <p>结构沿用 v6（点菜单栏图标展开面板，一账号一圆环，点圆环原地展开）。这一版只改你点名的三处，全部换成 macOS 自带组件的做法：</p>
+  <p><b>圆环</b>照「电池」小组件：系统绿表示正常，系统红表示低于 20%，轨道是同色的淡色版；数字本身不着色。<b>字体</b>只用系统文本样式和两种字重（常规、半粗）。<b>操作</b>不再用胶囊按钮：刷新是标题栏里的无边框图标按钮，次要操作是菜单项样式的整行命令（同控制中心模块末尾的「…设置…」），只有「重新授权…」是唯一的系统蓝色按钮。</p>
+  <div class="tb"><button data-t="dark" class="on">深色</button><button data-t="light">浅色</button></div>
+</div>
+
+<div id="root" class="dark">
+<section class="v">
+  <h2>① 默认 → 点击展开（真实数据）</h2>
+  <p class="note">左：默认。中：点了 Claude，展开区用细的容量指示条列出两个窗口，末尾是命令行「打开 Claude 用量页面…」（悬停时整行出现浅灰底，和控制中心模块末尾的「…设置…」一样）。右：实际锚定在菜单栏图标下方。</p>
+  <div class="stage" style="height:600px">
+    <div class="menubar"><div class="mb open" data-mb></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+    <span class="tag" style="left:16px;top:40px">默认</span>
+    <span class="tag" style="left:400px;top:40px">点击 Claude 后（悬停在命令行上）</span>
+    <div class="panel" data-panel="real" data-sel="-1" style="left:16px;top:68px"></div>
+    <div class="panel" data-panel="real" data-sel="0" data-hov="cmd" style="left:400px;top:68px"></div>
+    <div class="panel" data-panel="real" data-sel="-1" data-hov="icon" style="right:12px;top:30px"></div>
+    <div class="cap">右侧这张演示悬停在刷新按钮上：平时只是一个次要色图标，悬停才出现圆形底。面板宽 344；外边距 12/8；格子 82×101；圆环 52、线宽 5；展开区内边距 12，每个窗口：名称行 16 + 间距 6 + 指示条 6 + 间距 4 + 重置行 14。</div>
+  </div>
+</section>
+
+<section class="v">
+  <h2>② 多账号 + 异常 + 刷新中</h2>
+  <p class="note">左：7 个账号。中：选中「需重新授权」的账号，展开区给出原因和唯一的蓝色按钮。右：刷新中，图标转动，其余数值保持不变。</p>
+  <div class="stage" style="height:560px">
+    <div class="menubar"><div class="mb" data-mb></div><span>19°C</span><span>11月1日 周日 00:04</span></div>
+    <span class="tag" style="left:16px;top:40px">7 个账号</span>
+    <span class="tag" style="left:400px;top:40px">异常状态</span>
+    <span class="tag" style="right:12px;top:40px">刷新中</span>
+    <div class="panel" data-panel="many" data-sel="-1" style="left:16px;top:68px"></div>
+    <div class="panel" data-panel="states" data-sel="0" style="left:400px;top:68px"></div>
+    <div class="panel" data-panel="real4" data-sel="-1" data-refreshing="1" style="right:12px;top:68px"></div>
+    <div class="cap">异常状态靠环形和符号区分：需重新授权 = 虚线环 + 感叹号；限流中 = 空轨道 + 时钟；读取中 = 转动的短弧；读不到 = 虚线环 + 问号。都不显示百分比。</div>
+  </div>
+</section>
+
+<div class="cmp">
+  <h2>v6 → v7 改了什么</h2>
+  <table>
+    <tr><th>项</th><th>v6</th><th>v7</th><th>依据（Apple）</th></tr>
+    <tr><td>圆环颜色</td><td>正常时白色（跟随文字色），低时红；轨道灰</td><td>正常 systemGreen，&lt;20% systemRed；轨道 = 同色 25% 透明</td><td>「电池」小组件与 Gauge（容量样式）：着色的是指示本身，轨道用同色淡化</td></tr>
+    <tr><td>环内数字</td><td>13 圆体，低时数字也变红</td><td>15 圆体半粗，「%」同字号；数字始终 label 色</td><td>一个信息只用一种颜色表达；颜色给图形，文字保持可读</td></tr>
+    <tr><td>字重</td><td>常规 / 中等 / 半粗 / 粗 混用</td><td>只有常规和半粗</td><td>HIG 排版：层级靠字号和颜色，避免过多字重</td></tr>
+    <tr><td>名字</td><td>11 半粗</td><td>11 常规（Subheadline）</td><td>小组件里名字是说明，不是标题</td></tr>
+    <tr><td>附注</td><td>10，低时变红</td><td>10 secondaryLabel；只有「需重新授权」用橙色</td><td>状态色只用于需要操作的状态</td></tr>
+    <tr><td>展开区窗口</td><td>小圆环 + 17 大号数字</td><td>容量指示条（6 高）+ 13 半粗数值 + 11 次要色重置时间</td><td>同一面板里不重复用大圆环；明细用 Gauge 线性样式</td></tr>
+    <tr><td>刷新</td><td>灰底圆形按钮常驻</td><td>无边框图标按钮，悬停才出现底</td><td>工具栏/标题栏图标按钮默认无边框</td></tr>
+    <tr><td>刷新此账号 / 打开用量页</td><td>两个灰色胶囊，「↗」文本箭头</td><td>去掉「刷新此账号」（标题栏刷新已覆盖）；「打开 Claude 用量页面…」改成控制中心式整行命令</td><td>控制中心模块末尾的「…设置…」就是这种行；「…」表示会打开别处</td></tr>
+    <tr><td>添加账号 / 设置</td><td>两个等宽胶囊</td><td>整行命令两行，不带快捷键（控制中心里也不显示）</td><td>控制中心模块末尾的「…设置…」：悬停浅灰底</td></tr>
+    <tr><td>重新授权</td><td>蓝色胶囊</td><td>系统 push button（24 高、圆角 6），全面板唯一的强调按钮</td><td>一个界面只有一个主要操作</td></tr>
+  </table>
+</div>
+</div>
+
+<script>
+const REAL=[
+ {n:'Claude',pl:'Pro',site:'Claude',win:[['5 小时',52,'02:30 重置'],['本周',82,'11月7日 13:00 重置']]},
+ {n:'Codex',pl:'Free',site:'ChatGPT',win:[['本周',100,'11月27日 14:22 重置']]},
+ {n:'WorkBuddy',pl:'高级版',site:'WorkBuddy',win:[['积分',12,'剩 1,579 / 13,326']],credits:'1,579 积分'},
+];
+const MANY=[
+ {n:'Claude 主号',win:[['5 小时',52,'02:30']]},
+ {n:'客户 A 交付',st:'reauth'},
+ {n:'Claude 备用',win:[['本周',8,'11月5日']]},
+ {n:'Codex',win:[['本周',100,'11月27日']]},
+ {n:'Codex 工作',win:[['5 小时',37,'01:12']]},
+ {n:'WorkBuddy',win:[['积分',12,'']],credits:'1,579 积分'},
+ {n:'WB 国际站',win:[['积分',64,'']],credits:'8,200 积分'},
+];
+const STATES=[
+ {n:'客户 A 交付',pl:'Pro',st:'reauth'},
+ {n:'Codex 工作',st:'limited'},
+ {n:'WB 国际站',st:'loading'},
+ {n:'Claude 备用',st:'error'},
+];
+const REAL4=REAL.concat([{n:'WB 国际站',st:'loading'}]);
+const LOW=20;
+const col=p=>p<LOW?'var(--red)':'var(--green)';
+function ring(size,stroke,p,st){
+  const r=(size-stroke)/2,c=2*Math.PI*r,x=size/2;
+  let s=`<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
+  if(st==='reauth'||st==='error'){
+    s+=`<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="var(--label2)" stroke-width="1.5" stroke-dasharray="3 4"/>`;
+  }else if(st==='limited'||st==='loading'){
+    s+=`<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="var(--fill)" stroke-width="${stroke}"/>`;
+    if(st==='loading') s+=`<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="var(--label2)" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c*.16} ${c}" transform="rotate(-90 ${x} ${x})"><animateTransform attributeName="transform" type="rotate" from="-90 ${x} ${x}" to="270 ${x} ${x}" dur="1.2s" repeatCount="indefinite"/></circle>`;
+  }else{
+    s+=`<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${col(p)}" stroke-opacity=".25" stroke-width="${stroke}"/>`;
+    if(p>0){const len=p>=100?c:c*p/100;
+      s+=`<circle cx="${x}" cy="${x}" r="${r}" fill="none" stroke="${col(p)}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${len} ${c}" transform="rotate(-90 ${x} ${x})"/>`;}
+  }
+  return s+'</svg>';
+}
+const G={
+ reauth:'<svg class="glyph" viewBox="0 0 18 18"><path d="M9 4.5v6" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="13.6" r="1.2" fill="var(--orange)"/></svg>',
+ limited:'<svg class="glyph" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" fill="none" stroke="var(--label2)" stroke-width="1.5"/><path d="M9 5.5V9l2.4 1.5" fill="none" stroke="var(--label2)" stroke-width="1.5" stroke-linecap="round"/></svg>',
+ error:'<svg class="glyph" viewBox="0 0 18 18"><path d="M6.6 6.6a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6" fill="none" stroke="var(--label2)" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="13.8" r="1" fill="var(--label2)"/></svg>',
+};
+const META={reauth:'需重新授权',limited:'限流中 · 2 分钟',loading:'读取中…',error:'读不到'};
+function low(a){return a.win?a.win.reduce((m,w)=>w[1]<m[1]?w:m):null}
+function tile(a,i,sel){
+  const w=low(a),st=a.st;
+  let inner='';
+  if(st&&G[st]) inner=G[st];
+  else if(!st) inner=`<span class="v">${w[1]}<small>%</small></span>`;
+  const short=t=>{t=t.replace(' 重置','');const m=t.match(/^(\d+)月(\d+)日/);return m?`${m[1]}/${m[2]}`:t};
+  const meta=st?META[st]:(a.credits||(w[2]?`${w[0]} · ${short(w[2])}`:w[0]));
+  return `<div class="tile ${i===sel?'sel':''}" data-i="${i}"><div class="ring">${ring(52,5,w&&w[1],st)}${inner}</div><div class="n">${a.n}</div><div class="m ${st==='reauth'?'warn':''}">${meta}</div></div>`;
+}
+function detail(a,hov){
+  let h=`<div class="detail"><div class="dh"><span class="nm">${a.n}</span>${a.pl?`<span class="pl">${a.pl}</span>`:''}</div>`;
+  if(a.st==='reauth'){
+    h+=`<div class="msg">登录已失效</div><div class="msg2">10月29日起没有新数据。重新授权后保留别名和设置。</div><div class="btnrow"><span class="push">重新授权…</span></div>`;
+    h+=`<div class="dsep"></div><div class="cmd">移除此账号…</div>`;
+  }else{
+    for(const w of a.win){
+      h+=`<div class="win"><div class="l1"><span class="k">${w[0]}</span><span class="val">${w[1]}%</span></div><div class="bar" style="background:color-mix(in srgb, ${col(w[1])} 25%, transparent)"><i style="width:${w[1]}%;background:${col(w[1])}"></i></div><div class="r">${w[2]}</div></div>`;
+    }
+    h+=`<div class="dsep"></div><div class="cmd ${hov?'hov':''}">打开 ${a.site} 用量页面…</div>`;
+  }
+  return h+'</div>';
+}
+function panel(el){
+  const data={real:REAL,many:MANY,states:STATES,real4:REAL4}[el.dataset.panel];
+  const sel=+el.dataset.sel, hov=el.dataset.hov||'', ref=el.dataset.refreshing==='1';
+  const sub=ref?'正在刷新…':'00:04 更新';
+  let h=`<div class="ph"><span class="t">AI 额度</span><span class="s">${sub}</span><span class="icon ${hov==='icon'?'hov':''} ${ref?'spin':''}" title="刷新（⌘R）"><svg viewBox="0 0 16 16"><path d="M13.2 8.4A5.2 5.2 0 1 1 11.6 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12.4 1.9v2.8H9.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div><div class="grid">`;
+  data.forEach((a,i)=>{
+    h+=tile(a,i,sel);
+    const end=(i%4===3)||i===data.length-1;
+    if(end&&sel>=0&&Math.floor(sel/4)===Math.floor(i/4)) h+=detail(data[sel],hov==='cmd');
+  });
+  h+=`</div><div class="psep"></div><div class="pcmd">添加账号…</div><div class="pcmd">AI HUD 设置…</div>`;
+  el.innerHTML=h;
+  el.querySelectorAll('.tile').forEach(t=>t.onclick=()=>{el.dataset.sel=(+el.dataset.sel===+t.dataset.i)?-1:t.dataset.i;el.dataset.hov='';panel(el)});
+}
+document.querySelectorAll('[data-panel]').forEach(panel);
+document.querySelectorAll('[data-mb]').forEach(m=>m.innerHTML=`<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="2"/><circle cx="8" cy="8" r="6" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4.5 37.7" transform="rotate(-90 8 8)"/></svg><b>12%</b>`);
+document.querySelectorAll('.tb button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tb button').forEach(x=>x.classList.toggle('on',x===b));document.getElementById('root').className=b.dataset.t});
+</script>
+</body>
+</html>

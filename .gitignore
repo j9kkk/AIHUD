@@ -2,10 +2,13 @@ node_modules/
 dist/
 target/
 .worktrees/
-*.log
-.DS_Store
-ui/prod/
-src-tauri/icons/
-src-tauri/gen/
 __pycache__/
 *.pyc
+*.log
+.DS_Store
+
+# Swift 构建产物（源码在 mvp/，交付包在 mvp/build/）
+.build/
+**/.build/
+mvp/build/
+!.gitignore
