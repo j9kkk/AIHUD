@@ -390,7 +390,7 @@ open -n build/AIHUDA.app                       # 真实数据（复用 service=a
 ## 六、A/B 合并（2026-11-01）
 
 ### 结论
-只保留一个 App：`mvp/build/AIHUD.app`（target `AIHUD`）。
+只保留一个 App：`build/AIHUD.app`（target `AIHUD`）。
 
 - **一级**：视图切换从 2 档变 3 档 —— 列表 / 圆环 / 模块（A 的通栏 + 半宽卡片作为第三种展示方式）。记忆键 `AIHUD.view`。
 - **二级**：B 的详情页删除，统一用 A 的时间轴详情（倒计时列 + 竖轨 + 圆点 + 窗口名 + 17pt 数值 + 条 + 重置说明）；异常态用 A 的「无法读取配额 + 重新授权…」块。
@@ -503,3 +503,15 @@ open -n build/AIHUDA.app                       # 真实数据（复用 service=a
 
 验证：`swift build` 无 warning；`GEOM topSpread=0.00 rightSpread=0.00 offscreen=0`；
 三档高度 296.5 / 225.5 / 358.5、详情 268.5 与整理前逐一相同；交付包启动日志带 build 戳。
+
+
+## 十、仓库结构（2026-11-02 第二次整理）
+
+`mvp/` 这个名字已经没有意义（MVP 阶段结束），按开源 macOS 菜单栏 App 的通行做法摊平到仓库根：
+
+- 整个 App 就是一个 Swift Package，`Package.swift` 在根，每个 target 一个 `Sources/<Target>/`
+  （参照 steipete/CodexBar：`Sources/{CodexBar,CodexBarCore,CodexBarCLI}` + `Scripts/` + `docs/` + `Tests/`）。
+- `Sources/AIHUD`（App）· `Sources/HUDKit`（面板外壳）· `Sources/HUDCore`（数据层）· `Sources/AIHUDSlice`（切片工具）。
+- `slice/` 原来是独立包，现在作为第四个 executable target 并入主包，避免仓库里出现嵌套 Package。
+- 脚本统一 `Scripts/`（bundle.sh、push.sh），Python 探针放 `Tools/`，文档在 `docs/`（新增 `docs/DEV.md`）。
+- 产物路径：`build/AIHUD.app`（原来 `mvp/build/AIHUD.app`），`.build/` 与 `build/` 都在 .gitignore。

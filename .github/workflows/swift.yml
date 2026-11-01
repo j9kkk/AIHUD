@@ -13,22 +13,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build
-        run: |
-          cd mvp
-          swift build
+        run: swift build
 
       - name: Geometry regression
         run: |
-          cd mvp
           AIHUD_DEMO=1 AIHUD_GEOM_TEST=8 .build/debug/AIHUD | tail -1
           AIHUD_DEMO=issue AIHUD_GEOM_TEST=8 .build/debug/AIHUD | tail -1
 
       - name: Bundle
-        run: |
-          cd mvp
-          ./scripts/bundle.sh
+        run: ./scripts/bundle.sh
 
       - uses: actions/upload-artifact@v4
         with:
           name: AIHUD-app
-          path: mvp/build/AIHUD.app
+          path: build/AIHUD.app

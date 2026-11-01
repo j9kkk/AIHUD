@@ -7,8 +7,7 @@ __pycache__/
 *.log
 .DS_Store
 
-# Swift 构建产物（源码在 mvp/，交付包在 mvp/build/）
+# Swift 构建产物；交付包 build/AIHUD.app 由 Scripts/bundle.sh 生成，不入库
 .build/
-**/.build/
-mvp/build/
-!.gitignore
+build/
+*.dSYM/

@@ -1,7 +1,7 @@
 # AI HUD
 
 > 常驻 macOS 菜单栏的多渠道 AI 额度 HUD —— 一个环看余额，点一下看全部。
-> 当前实现：**Swift / AppKit 原生**（`mvp/`），覆盖 Claude / Codex / WorkBuddy 三个渠道。
+> 当前实现：**Swift / AppKit 原生**（单 Swift Package，见 `docs/DEV.md`），覆盖 Claude / Codex / WorkBuddy 三个渠道。
 
 ## 它解决什么
 
@@ -27,28 +27,28 @@ AI HUD 把这件事收成一个 352pt 的菜单栏面板：
 ## 目录
 
 ```text
-mvp/           当前实现（SwiftPM）
-  Sources/HUDCore/   模型、三渠道取数（Providers/）、凭据、存储
-  Sources/HUDKit/    面板外壳（AppShell / PanelLayout / PanelProbes）、样式与绘制、补间
-  Sources/AIHUD/     界面：PanelScreen + 列表 / 圆环 / 模块 + 时间轴详情
-  scripts/bundle.sh  打包成 mvp/build/AIHUD.app（ad-hoc 签名 + build 戳）
-slice/         真实数据垂直切片：命令行登录 / 取数，凭据存自己的钥匙串
-tools/         渠道端点探针（只读、脱敏）
-docs/reboot/   产品规格、决策、风险、原型、验收与复盘
-  explore/p11.html p12.html       已验收原型（measure-*.json 为逐元素实测）
-  explore/MVP-ACCEPTANCE.md       逐轮验收记录（含每次缺陷的根因）
-  explore/POSTMORTEM-MOTION.md    动效 / 几何问题复盘
-scripts/push.sh 推送到 GitHub（PAT 不落盘）
+Package.swift          单包，四个 target（App / 面板外壳 / 数据层 / 切片工具）
+Sources/
+  AIHUD/               交付 App：main · PanelScreen · Chrome · Overview{List,Grid,Modules} · DetailTimeline
+  HUDKit/              面板外壳：AppShell · PanelLayout · PanelProbes · HUDScreen · Style · Drawing
+                       · Formatting · ValueTween · Motion
+  HUDCore/             数据层：Model · HUD · Support · Auth · Store · Providers/{Shared,Claude,Codex,WorkBuddy,Fetch}
+  AIHUDSlice/          真实数据垂直切片（命令行登录 / 取数 / 桌面组件），不随 App 发布
+scripts/               bundle.sh（打包 build/AIHUD.app）· push.sh
+Tools/                 渠道端点探针（Python，只读、脱敏）
+docs/                  DEV.md（目录与命名）· reboot/（规格、原型、验收、复盘）
+.github/workflows/     swift.yml：编译 + 几何回归 + 打包
 ```
 
 ## 构建与运行
 
 ```bash
-cd mvp
-swift build                 # 编译，约 2 秒
+swift build                 # 编译，首次约 30 秒
 ./scripts/bundle.sh         # 打包 → build/AIHUD.app，并打印 build 戳
 open build/AIHUD.app
 ```
+
+目录划分、命名约定与验收命令见 [`docs/DEV.md`](docs/DEV.md)。
 
 支持 macOS 14+。本机若只有 Command Line Tools（无 Xcode），SwiftUI 宏编译不过，本实现全部用 AppKit 手绘。
 
