@@ -30,18 +30,6 @@ public func resetPair(_ w: QuotaWindow, now: Date = Date()) -> (countdown: Strin
 }
 
 /// 详情页副标题：「今天 02:30 重置」/「11月7日 13:00 重置」/「11月9日 到期」
-public func resetLine(_ w: QuotaWindow) -> String {
-    guard let d = w.resetAt else { return w.resetText ?? "正常计费" }
-    if w.isExpiry {
-        let f = DateFormatter(); f.locale = Locale(identifier: "zh_CN"); f.dateFormat = "M月d日"
-        return f.string(from: d) + " 到期"
-    }
-    let f = DateFormatter(); f.locale = Locale(identifier: "zh_CN")
-    f.dateFormat = Calendar.current.isDateInToday(d) ? "'今天' HH:mm" : "M月d日 HH:mm"
-    return f.string(from: d) + " 重置"
-}
-
-/// 模块一行的小字：「5 小时 · 今天 02:30」「积分 · 11月9日 到期」
 public func moduleMeta(_ w: QuotaWindow) -> String {
     if w.label == "积分" {
         guard let t = w.resetText, !t.isEmpty else { return "积分" }

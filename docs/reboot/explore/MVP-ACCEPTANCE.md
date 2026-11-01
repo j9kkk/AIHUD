@@ -67,10 +67,10 @@ PLACE anchor=(1496,919) → 1144/693.5 (225.5)
 
 回归入口：
 ```bash
-AIHUD_SWITCH_TEST=1 .build/debug/MVPB      # 打印 窗口高 / 内容层高 / 期望高
-AIHUD_ANIM_TEST=1   .build/debug/MVPB      # 动画期间连续采样（读呈现层）
-AIHUD_SWITCH_LIVE=1 .build/debug/MVPB      # 真窗口，2s/4s 各切一次，供截图
-AIHUD_GEOM_TEST=25  .build/debug/MVPA      # 反复开关 + 进二级，查稀疏度
+AIHUD_SWITCH_TEST=1 .build/debug/AIHUD      # 打印 窗口高 / 内容层高 / 期望高
+AIHUD_ANIM_TEST=1   .build/debug/AIHUD      # 动画期间连续采样（读呈现层）
+AIHUD_SWITCH_LIVE=1 .build/debug/AIHUD      # 真窗口，2s/4s 各切一次，供截图
+AIHUD_GEOM_TEST=25  .build/debug/AIHUD      # 反复开关 + 进二级，查稀疏度
 ```
 
 ## 面板位移：回归测试
@@ -88,8 +88,8 @@ f.origin.y = max(vf.minY + 8, min(f.origin.y, vf.maxY - h - 8))
 回归测试（`AIHUD_GEOM_TEST=N` 反复「打开 → 进二级 → 返回 → 关闭」N 轮）：
 
 ```bash
-AIHUD_DEMO=1 AIHUD_GEOM_TEST=40 .build/debug/MVPA    # topSpread=0.00 rightSpread=0.00 offscreen=0
-AIHUD_DEMO=issue AIHUD_GEOM_TEST=40 .build/debug/MVPB # 同上
+AIHUD_DEMO=1 AIHUD_GEOM_TEST=40 .build/debug/AIHUD    # topSpread=0.00 rightSpread=0.00 offscreen=0
+AIHUD_DEMO=issue AIHUD_GEOM_TEST=40 .build/debug/AIHUD # 同上
 ```
 
 实际帧：一级 `{1144,566,352,353}` → 二级 `{1144,648,352,271}` → 返回 `{1144,566,352,353}`，
@@ -390,11 +390,11 @@ open -n build/AIHUDA.app                       # 真实数据（复用 service=a
 ## 六、A/B 合并（2026-11-01）
 
 ### 结论
-只保留一个 App：`mvp/build/AIHUD.app`（target `MVPM`）。
+只保留一个 App：`mvp/build/AIHUD.app`（target `AIHUD`）。
 
-- **一级**：视图切换从 2 档变 3 档 —— 列表 / 圆环 / 模块（A 的通栏 + 半宽卡片作为第三种展示方式）。记忆键 `MVPM.view`。
+- **一级**：视图切换从 2 档变 3 档 —— 列表 / 圆环 / 模块（A 的通栏 + 半宽卡片作为第三种展示方式）。记忆键 `AIHUD.view`。
 - **二级**：B 的详情页删除，统一用 A 的时间轴详情（倒计时列 + 竖轨 + 圆点 + 窗口名 + 17pt 数值 + 条 + 重置说明）；异常态用 A 的「无法读取配额 + 重新授权…」块。
-- A/B 两个 target 源码保留作对照，`bundle.sh` 默认只打合并版；打旧版用 `bundle.sh AB`。
+- A/B 两个 target 已删除（2026-11-02 结构整理），源码在 git 历史；`bundle.sh` 只打一个 App。
 
 ### 几何
 | 状态 | 高 |
@@ -478,3 +478,28 @@ open -n build/AIHUDA.app                       # 真实数据（复用 service=a
 
 实机 6 帧（列表→圆环、圆环→模块）复核：影子单层、贴边、圆角连续，无分离、无黑环。
 交付包 `build=20261102-000951`。
+
+
+## 九、代码结构整理（2026-11-02）
+
+合并后做了一次纯结构调整，行为不变（三档高度、详情高度、几何回归数值全部一致）：
+
+| 原 | 现 |
+|---|---|
+| `Sources/MVPA` `Sources/MVPB` `Sources/MVPM` | `Sources/AIHUD`（唯一 target） |
+| `HUDKit/Shell.swift` (778) | `AppShell.swift` + `PanelLayout.swift` + `PanelProbes.swift` |
+| `HUDKit/Screen.swift` | `HUDScreen.swift`（协议 + BaseScreen） |
+| `HUDKit/Theme.swift` | `Style.swift`（令牌/字体）+ `Drawing.swift`（绘制原语） |
+| `HUDKit/Anim.swift` | `ValueTween.swift`（数值补间）+ `Motion.swift`（出现动画/曲线） |
+| `HUDKit/Format.swift` | `Formatting.swift` |
+| `HUDCore/API.swift` | `Model.swift` + `HUD.swift` |
+| `HUDCore/Core.swift` | `Support.swift` + `Auth.swift` + `Store.swift` |
+| `HUDCore/Providers.swift` | `Providers/{Shared,Claude,Codex,WorkBuddy,Fetch}.swift` |
+| `AIHUD/ScreenM.swift` (584) | `PanelScreen.swift` + `Chrome.swift` + `OverviewList/Grid/Modules.swift` + `DetailTimeline.swift` |
+
+删除的无用代码：`IconButton`、`ViewSwitch`、`drawWarningGlyph`、`playAppear`、
+`ScreenTransition`/`applyTransition`/`playWipe`/`snapshotView`（内容转场整条路线）、
+`resetLine`、`pendingAnchor`（只写不读）、`startSpin/stopSpin`。
+
+验证：`swift build` 无 warning；`GEOM topSpread=0.00 rightSpread=0.00 offscreen=0`；
+三档高度 296.5 / 225.5 / 358.5、详情 268.5 与整理前逐一相同；交付包启动日志带 build 戳。

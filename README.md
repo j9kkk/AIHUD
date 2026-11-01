@@ -28,10 +28,9 @@ AI HUD 把这件事收成一个 352pt 的菜单栏面板：
 
 ```text
 mvp/           当前实现（SwiftPM）
-  Sources/HUDCore/   数据模型、三个渠道取数、演示数据
-  Sources/HUDKit/    面板外壳（锚定 / 阴影 / 高度动画）、绘制与令牌、动效
-  Sources/MVPM/      合并版界面：列表 / 圆环 / 模块 + 时间轴详情
-  Sources/MVPA|MVPB/ 两版对照实现（不打包，仅存档）
+  Sources/HUDCore/   模型、三渠道取数（Providers/）、凭据、存储
+  Sources/HUDKit/    面板外壳（AppShell / PanelLayout / PanelProbes）、样式与绘制、补间
+  Sources/AIHUD/     界面：PanelScreen + 列表 / 圆环 / 模块 + 时间轴详情
   scripts/bundle.sh  打包成 mvp/build/AIHUD.app（ad-hoc 签名 + build 戳）
 slice/         真实数据垂直切片：命令行登录 / 取数，凭据存自己的钥匙串
 tools/         渠道端点探针（只读、脱敏）

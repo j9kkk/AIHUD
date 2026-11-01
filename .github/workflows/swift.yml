@@ -20,8 +20,8 @@ jobs:
       - name: Geometry regression
         run: |
           cd mvp
-          AIHUD_DEMO=1 AIHUD_GEOM_TEST=8 .build/debug/MVPM | tail -1
-          AIHUD_DEMO=issue AIHUD_GEOM_TEST=8 .build/debug/MVPM | tail -1
+          AIHUD_DEMO=1 AIHUD_GEOM_TEST=8 .build/debug/AIHUD | tail -1
+          AIHUD_DEMO=issue AIHUD_GEOM_TEST=8 .build/debug/AIHUD | tail -1
 
       - name: Bundle
         run: |
